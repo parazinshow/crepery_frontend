@@ -1,8 +1,8 @@
 <template>
-  <div>
-    <NuxtRouteAnnouncer />
-    <NuxtPage />
-  </div>
+	<div>
+		<NuxtRouteAnnouncer />
+		<NuxtPage />
+	</div>
 </template>
 
 <script setup>
@@ -19,5 +19,6 @@ useHead({
 </script>
 
 <style>
-@import "@/assets/css/tailwind.css";
+	@import "@/assets/css/tailwind.css";
+	@import "flowbite/src/themes/default";
 </style>
