@@ -5,6 +5,7 @@
     <ul>
       <li v-for="item in itemsMenu.items" :key="item.id">
         {{ item.name }} - {{ item.description }} - ${{ item.variations[0].price }}
+        <img :src="item.image_url"/>
       </li>
     </ul>
   </div>

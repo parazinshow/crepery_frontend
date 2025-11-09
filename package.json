@@ -10,7 +10,10 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@nuxt/image": "^2.0.0",
+    "nodemailer": "^7.0.10",
     "nuxt": "^4.2.1",
+    "qrcode": "^1.5.4",
     "vue": "^3.5.22",
     "vue-router": "^4.6.3"
   },
