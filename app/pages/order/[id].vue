@@ -1,37 +1,207 @@
 <template>
-  <div class="max-w-md mx-auto mt-10 bg-white p-6 rounded-lg shadow-lg text-center space-y-4">
-    <h2 class="text-2xl font-semibold">Order Confirmation</h2>
+  <div class="max-w-2xl mx-auto mt-10 bg-white p-6 rounded-lg shadow-lg">
+    <h2 class="text-2xl font-semibold text-center">🥞 Order Confirmation</h2>
 
-    <div v-if="pending">
-      <p>Loading your order...</p>
+    <!-- Loading -->
+    <div v-if="pending" class="text-center text-gray-500 py-10">
+      Loading your order...
     </div>
 
-    <div v-else-if="error">
-      <p class="text-red-600">Order not found or invalid.</p>
+    <!-- Error -->
+    <div v-else-if="error || !displayOrder" class="text-center text-red-600 py-10">
+      Order not found or invalid.
     </div>
 
-    <div v-else>
-      <p class="text-gray-600">Thank you for your order!</p>
-      <p><b>Status:</b> {{ order.status }}</p>
-      <p><b>Amount:</b> ${{ (order.amount_money.amount / 100).toFixed(2) }} {{ order.amount_money.currency }}</p>
-      <p><b>Payment Method:</b> {{ order.card_details.card.card_brand }} ••••{{ order.card_details.card.last_4 }}</p>
-      <p><b>Placed on:</b> {{ new Date(order.created_at).toLocaleString() }}</p>
+    <!-- Content -->
+    <div v-else class="space-y-4">
+      <div class="text-center">
+        <p class="text-sm text-gray-600">Thank you for your order!</p>
+        <p class="mt-1">
+          <b>Order ID:</b>
+          <span class="font-mono text-gray-700">{{ displayOrder.id }}</span>
+        </p>
+        <p
+          class="mt-2 inline-block px-3 py-1 rounded-full text-sm font-semibold"
+          :class="{
+            'bg-green-100 text-green-700': displayOrder.status === 'COMPLETED',
+            'bg-yellow-100 text-yellow-700': displayOrder.status === 'PENDING',
+            'bg-red-100 text-red-700': displayOrder.status !== 'COMPLETED' && displayOrder.status !== 'PENDING'
+          }"
+        >
+          {{ displayOrder.status }}
+        </p>
+      </div>
 
-      <a
-        :href="order.receipt_url"
-        target="_blank"
-        class="inline-block mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
-      >
-        View Square Receipt
-      </a>
+      <!-- Itens do pedido (se houver) -->
+      <div v-if="displayOrder.items && displayOrder.items.length">
+        <h3 class="text-lg font-semibold border-b pb-2 mb-2">🧾 Order Summary</h3>
+        <ul>
+          <li
+            v-for="it in displayOrder.items"
+            :key="it.id || it.name"
+            class="flex justify-between py-1 border-b border-gray-100 last:border-none"
+          >
+            <div>
+              <p>{{ it.quantity }} × {{ it.name }}</p>
+            </div>
+            <p class="font-medium">
+              ${{ ((it.price_cents ?? it.price ?? 0) / 100 * it.quantity).toFixed(2) }}
+            </p>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Totais -->
+      <div class="text-right font-semibold text-lg border-t pt-2">
+        Total: ${{ (displayOrder.totalCents / 100).toFixed(2) }} {{ displayOrder.currency }}
+      </div>
+
+      <!-- Método de pagamento (se vier da Square) -->
+      <div v-if="displayOrder.cardBrand || displayOrder.last4" class="text-sm text-gray-700">
+        <b>Payment Method:</b>
+        <span v-if="displayOrder.cardBrand">{{ displayOrder.cardBrand }}</span>
+        <span v-if="displayOrder.last4"> ••••{{ displayOrder.last4 }}</span>
+      </div>
+
+      <!-- Data/hora -->
+      <div class="text-sm text-gray-600">
+        <b>Placed on:</b> {{ placedOn }}
+      </div>
+      
+      <!-- Recibo -->
+      <div v-if="displayOrder.receiptUrl" class="text-center mt-2">
+        <a
+          :href="displayOrder.receiptUrl"
+          target="_blank"
+          class="inline-block bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700 transition"
+        >
+          View Square Receipt
+        </a>
+      </div>
+
+      <!-- Voltar -->
+      <div class="text-center mt-4">
+        <button
+          @click="navigateTo('/order')"
+          class="text-blue-600 hover:underline font-medium"
+        >
+          ← Back to Menu
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+/* ------------------------------------------------------------
+ 📍 OBTÉM O ID DO PEDIDO PELA ROTA ATUAL
+--------------------------------------------------------------- */
+// Exemplo: /order/cmhr50jig0000hg9kktul4m56
+// → route.params.id = "cmhr50jig0000hg9kktul4m56"
 const route = useRoute()
-const { data: order, pending, error } = await useFetch(`/api/order/${route.params.id}`)
+
+/* ------------------------------------------------------------
+ 🔍 REQUISIÇÃO AO BACKEND
+--------------------------------------------------------------- */
+// Faz a chamada para a API interna que retorna o pedido completo.
+// A API `/api/order/[id].get.js` busca o pedido no banco Prisma
+// (ou, se necessário, pela Square usando o squareId).
+const { data, pending, error } = await useFetch(`/api/order/${route.params.id}`)
+
+/* ------------------------------------------------------------
+ 🧩 NORMALIZAÇÃO DOS DADOS
+--------------------------------------------------------------- */
+/**
+ * O backend pode retornar diferentes formatos:
+ *  - Um objeto Prisma (`order`) com campos como `totalAmount`, `items`, `createdAt`
+ *  - Ou, em alguns casos, o objeto completo do pagamento Square
+ *
+ * Esta função padroniza os dados para que o template da UI
+ * sempre tenha o mesmo formato — independente da origem.
+ */
+const displayOrder = computed(() => {
+  const payload = data.value
+  if (!payload) return null
+
+  // Pode vir como { success, order } (backend) ou direto (Square)
+  const o = payload.order ?? payload
+
+  /* 💰 TOTAL EM CENTAVOS
+   * Usa `totalAmount` (do Prisma) ou `amount_money.amount` (Square).
+   */
+  const totalCents =
+    o.totalAmount ??
+    o.amount_money?.amount ??
+    0
+
+  /* 💵 MOEDA DO PEDIDO */
+  const currency = o.currency ?? o.amount_money?.currency ?? 'USD'
+
+  /* 🆔 IDENTIFICADORES
+   * Prioriza `squareId` (do pagamento real), senão usa o `id` interno do banco.
+   */
+  const id = o.squareId ?? o.id
+
+  /* 📦 STATUS DO PAGAMENTO
+   * Pode vir de diferentes campos dependendo da origem dos dados.
+   */
+  const status =
+    o.status ??
+    o.card_details?.status ??
+    o.payment?.status ??
+    'UNKNOWN'
+
+  /* 🧾 URL DO RECIBO */
+  const receiptUrl = o.receiptUrl ?? o.receipt_url ?? null
+
+  /* 🕒 DATA DE CRIAÇÃO */
+  const createdAt = o.createdAt ?? o.created_at ?? null
+
+  /* 🧁 ITENS DO PEDIDO
+   * Quando salvo no Prisma, vem em `order.items[]`.
+   * Cada item contém nome, preço e quantidade.
+   */
+  const items = o.items ?? []
+
+  /* 💳 INFORMAÇÕES DO CARTÃO (se disponível via Square) */
+  const cardBrand = o.card_details?.card?.card_brand ?? null
+  const last4 = o.card_details?.card?.last_4 ?? null
+
+  // Retorna tudo padronizado para a interface
+  return {
+    id,
+    status,
+    totalCents,
+    currency,
+    receiptUrl,
+    createdAt,
+    items,
+    cardBrand,
+    last4
+  }
+})
+
+/* ------------------------------------------------------------
+ 🕓 FORMATAÇÃO DE DATA LEGÍVEL
+--------------------------------------------------------------- */
+/**
+ * Gera uma string amigável com a data do pedido.
+ * Se não houver data, retorna "—".
+ */
+const placedOn = computed(() => {
+  const d = displayOrder.value?.createdAt
+  if (!d) return '—'
+  try {
+    return new Date(d).toLocaleString()
+  } catch {
+    return String(d)
+  }
+})
 </script>
+
 
 <style>
 body {
