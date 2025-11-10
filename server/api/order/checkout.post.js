@@ -7,10 +7,10 @@
 // um e-mail de confirmação com QR code e resumo do pedido.
 // ===============================================
 
-import { getSquareConfig } from '../utils/squareClient.js'          // 🔧 Configurações da API Square
-import { sendOrderConfirmationEmail } from '../utils/emailClient.js' // ✉️ Função que envia o e-mail de confirmação
-import prisma from '../utils/db.js'                                 // 🧱 Cliente Prisma (SQLite)
-import { validateSquareItems } from '../utils/validateSquareItems.js' // ✅ Valida itens direto no catálogo da Square
+import { getSquareConfig } from '../../utils/squareClient.js'          // 🔧 Configurações da API Square
+import { sendOrderConfirmationEmail } from '../../utils/emailClient.js' // ✉️ Função que envia o e-mail de confirmação
+import prisma from '../../utils/db.js'                                 // 🧱 Cliente Prisma (SQLite)
+import { validateSquareItems } from '../../utils/validateSquareItems.js' // ✅ Valida itens direto no catálogo da Square
 
 export default defineEventHandler(async (event) => {
   try {

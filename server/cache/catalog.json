@@ -1,0 +1,186 @@
+{
+  "timestamp": "2025-11-10T02:44:05.108Z",
+  "data": {
+    "tax": {
+      "id": "EX2BKFSR4DTWPTV2MY2XGHGR",
+      "name": "Vail Sales Tax",
+      "percentage": 9.4
+    },
+    "categories": {
+      "sweetItems": [
+        {
+          "id": "6GKS43QA2K2IOXJPFJNXIB7V",
+          "name": "Nutella",
+          "description": "Crepe Nutella",
+          "image_ids": [
+            "G6CGSKFNVO3EEGIG3HHSG6EV"
+          ],
+          "variations": [
+            {
+              "id": "X6WNYUVXN5QFNCLELZQSELI7",
+              "name": "Regular",
+              "price_cents": 1100,
+              "currency": "USD"
+            }
+          ],
+          "image_url": "https://items-images-sandbox.s3.us-west-2.amazonaws.com/files/b85fd7a2057e6085d215e81d99b7369d94fc245f/original.jpeg"
+        },
+        {
+          "id": "YDHYRESKOAB25VDCTGOWNE7M",
+          "name": "Butter & Sugar",
+          "description": "",
+          "image_ids": [],
+          "variations": [
+            {
+              "id": "567EOGMHQT3I2MRK6VQTCWIJ",
+              "name": "Regular",
+              "price_cents": 900,
+              "currency": "USD"
+            }
+          ],
+          "image_url": null
+        }
+      ],
+      "savoryItems": [
+        {
+          "id": "3VECZHMQUZM5GYXTFIYTPNSS",
+          "name": "Brittany",
+          "description": "Egg, Ham and cheese",
+          "image_ids": [
+            "I6GTXHCEVE3W6V6ERNDBUIY7"
+          ],
+          "variations": [
+            {
+              "id": "KEZW4GM3RSATPNTFT54BOI3X",
+              "name": "Regular",
+              "price_cents": 1500,
+              "currency": "USD"
+            }
+          ],
+          "image_url": "https://items-images-sandbox.s3.us-west-2.amazonaws.com/files/c1f01e1fdeec141cd7a3101eaf1fee90028c581e/original.jpeg"
+        },
+        {
+          "id": "DZGH2WYZJT2Y2LV2OTNNNR4R",
+          "name": "Forest",
+          "description": "Champignon",
+          "image_ids": [
+            "NYDCA6HAM2PQMLWJPB7DUC6D"
+          ],
+          "variations": [
+            {
+              "id": "6WKTAZ5EFD2FZSWKF2B6VB2X",
+              "name": "Regular",
+              "price_cents": 1600,
+              "currency": "USD"
+            }
+          ],
+          "image_url": "https://items-images-sandbox.s3.us-west-2.amazonaws.com/files/dcf910894989da9e1bc174e6c31b1e34b2367868/original.png"
+        }
+      ],
+      "drinks": [
+        {
+          "id": "OSLVHL6V7ALMJVT2T3RVWBFA",
+          "name": "Iced Tea",
+          "description": "",
+          "image_ids": [
+            "7DGSMZALT4CFG2BUT732N5KQ"
+          ],
+          "variations": [
+            {
+              "id": "HGIJCJHDCLUDXOSGPD6JAEB4",
+              "name": "Regular",
+              "price_cents": 400,
+              "currency": "USD"
+            }
+          ],
+          "image_url": "https://items-images-sandbox.s3.us-west-2.amazonaws.com/files/3eb3201f283badf8aa5972df848a4d95d427d781/original.png"
+        },
+        {
+          "id": "UDGCBWMDCTHC4DA4WERH2BPX",
+          "name": "Sprite",
+          "description": "",
+          "image_ids": [
+            "KCFIBTV75TXHWEQ4KLIP76NY"
+          ],
+          "variations": [
+            {
+              "id": "X2O24P5IVIF273VETSD5VGI7",
+              "name": "Regular",
+              "price_cents": 250,
+              "currency": "USD"
+            }
+          ],
+          "image_url": "https://items-images-sandbox.s3.us-west-2.amazonaws.com/files/9d6322e5baf78a2df7348402e86d8c2a2f826f89/original.png"
+        }
+      ],
+      "toppingsSweet": [
+        {
+          "id": "GXI2FQMT6DTWBRKQ5LEUSSQT",
+          "name": "Banana",
+          "description": "Topping",
+          "image_ids": [
+            "DE72NZFQPZDRZZSC3OWPH4H2"
+          ],
+          "variations": [
+            {
+              "id": "5WEBDVCDXDUSH7GLW27YMKNB",
+              "name": "Regular",
+              "price_cents": 150,
+              "currency": "USD"
+            }
+          ],
+          "image_url": "https://items-images-sandbox.s3.us-west-2.amazonaws.com/files/b8c0aabe1308ad56e9d666a1b73f151258f88432/original.png"
+        },
+        {
+          "id": "AGQI5KJVYVOJTSV4S7LOYPF6",
+          "name": "Walnut",
+          "description": "",
+          "image_ids": [],
+          "variations": [
+            {
+              "id": "RYAUGASQ77XI4JBKPDNTILKH",
+              "name": "Regular",
+              "price_cents": 150,
+              "currency": "USD"
+            }
+          ],
+          "image_url": null
+        }
+      ],
+      "toppingsSavory": [
+        {
+          "id": "TNKWGJJUMQUSYAC5OO7JDNZC",
+          "name": "Ham",
+          "description": "Topping",
+          "image_ids": [
+            "YIWAMQFIHRN3HAKHHI5KEQUA"
+          ],
+          "variations": [
+            {
+              "id": "PRMPQPQ77JXCV2ZKJJFSAFRN",
+              "name": "Regular",
+              "price_cents": 250,
+              "currency": "USD"
+            }
+          ],
+          "image_url": "https://items-images-sandbox.s3.us-west-2.amazonaws.com/files/22dac64aa621b0a6817fdbe1ef9c2b502ecebf35/original.png"
+        },
+        {
+          "id": "IRPOOYXV2BM2YI4CEII4C2II",
+          "name": "Pesto",
+          "description": "",
+          "image_ids": [],
+          "variations": [
+            {
+              "id": "ENY4VKS6RGX7Q5VLAALAV26J",
+              "name": "Regular",
+              "price_cents": 150,
+              "currency": "USD"
+            }
+          ],
+          "image_url": null
+        }
+      ]
+    }
+  }
+}

@@ -189,7 +189,7 @@ async function tokenizeAndPay(result) {
   try {
     // Envia ao servidor apenas IDs e quantidades
     // O preço é recalculado direto na API da Square
-    const response = await $fetch('/api/checkout', {
+    const response = await $fetch('/api/order/checkout', {
       method: 'POST',
       body: {
         sourceId: result.token,

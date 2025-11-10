@@ -315,7 +315,7 @@
 ---------------------------------------------------------- */
 	onMounted(async () => {
 		try {
-			const res = await $fetch("/api/menu");
+			const res = await $fetch("/api/order/menu");
 			menu.value = res.items || [];
 		} catch (e) {
 			console.error("Erro ao carregar menu:", e);
