@@ -198,36 +198,54 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 
-/* ---------- STATE ---------- */
+/* ======================================================
+ 🧠 STATE PRINCIPAL — VARIÁVEIS REATIVAS DE CONTROLE
+------------------------------------------------------ */
+
+// Imagem transparente usada como fallback em casos sem imagem
 const placeholder =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' // 1x1 transparente
-const menuSections = ref({
-  sweetItems: [],
-  savoryItems: [],
-  drinks: [],
-  toppingsSweet: [],
-  toppingsSavory: [],
+
+// Estrutura do menu completa separada por categorias
+  const menuSections = ref({
+  sweetItems: [],     // crepes doces
+  savoryItems: [],    // crepes salgados
+  drinks: [],         // bebidas
+  toppingsSweet: [],  // toppings de doces
+  toppingsSavory: [], // toppings de salgados
 })
+// "menuFlat" é um array plano com todos os itens principais (sem toppings)
 const menuFlat = computed(() => [
   ...menuSections.value.sweetItems,
   ...menuSections.value.savoryItems,
   ...menuSections.value.drinks,
 ])
+// Estado do carrinho
 const cart = ref([])
+// Indicador de carregamento (exibe “Loading...” até o menu ser carregado)
 const loading = ref(true)
 
-/* ---------- ADDONS (dinâmicos do cache) ---------- */
+/* ======================================================
+ 🍓 ADDONS — ITENS OPCIONAIS (vêm do cache da Square)
+------------------------------------------------------ */
+// addonsOptions é preenchido dinamicamente com toppings do cache
 const addonsOptions = ref([])
 
+// Controle do modal de customização
 const showCustomizationModal = ref(false)
-const selectedItemForCustomization = ref(null)
-const selectedCartItemForCustomization = ref(null)
-const selectedAddons = ref([])
+const selectedItemForCustomization = ref(null)     // item do menu sendo customizado
+const selectedCartItemForCustomization = ref(null) // item já existente no carrinho
+const selectedAddons = ref([])                     // lista de addons selecionados
 
-/* ---------- HELPERS ---------- */
+/* ======================================================
+ ⚙️ HELPERS — FUNÇÕES DE APOIO
+------------------------------------------------------ */
+// Normaliza um array de addons, garantindo ordenação estável
 function normalizeAddons(addons) {
   return [...addons].sort()
 }
+
+// Compara dois arrays de addons para saber se são equivalentes
 function addonsEqual(a, b) {
   const aa = normalizeAddons(a || [])
   const bb = normalizeAddons(b || [])
@@ -235,9 +253,13 @@ function addonsEqual(a, b) {
   for (let i = 0; i < aa.length; i++) if (aa[i] !== bb[i]) return false
   return true
 }
+
+// Busca um addon pelo seu ID (usado para exibir nome e preço)
 function getAddonById(id) {
   return addonsOptions.value.find((a) => a.id === id) || null
 }
+
+// Soma o preço total dos addons de um item no carrinho
 function getAddonsPriceCents(cartItem) {
   if (!cartItem.addons?.length) return 0
   return cartItem.addons.reduce(
@@ -245,18 +267,25 @@ function getAddonsPriceCents(cartItem) {
     0
   )
 }
+
+// Calcula o preço total de um item (base + addons) em centavos
 function getItemTotalCents(cartItem) {
   const base = Number(cartItem.price_cents || 0)
   const addonsTotal = getAddonsPriceCents(cartItem)
   return (base + addonsTotal) * Number(cartItem.quantity || 1)
 }
 
-/* ---------- FETCH MENU (CLIENT) ---------- */
+/* ======================================================
+ 🍽️ FETCH MENU (CLIENTE)
+------------------------------------------------------ */
+// Executa ao montar o componente — busca menu + carrega carrinho
 onMounted(async () => {
   try {
+    // Busca o menu atualizado no backend
     const res = await $fetch('/api/order/menu')
-    // aceita { tax, categories } OU { data: { tax, categories } }
+    // Lê categorias com fallback em caso de estrutura diferente
     const categories = res?.categories || res?.data?.categories || {}
+    // Popula o estado do menu
     menuSections.value = {
       sweetItems: categories.sweetItems || [],
       savoryItems: categories.savoryItems || [],
@@ -265,12 +294,12 @@ onMounted(async () => {
       toppingsSavory: categories.toppingsSavory || [],
     }
 
-    //adiciona tax no localStorage
+    // Salva a porcentagem de taxa (tax) no localStorage para o checkout
     if (res?.tax != null) {
       localStorage.setItem('crepegirl_tax_percentage', String(res.tax.percentage))
     }
 
-    // cria lista de addons a partir dos toppings do cache
+    // Gera dinamicamente os addons (toppings) a partir do menu
     const toppings = [
       ...(categories.toppingsSweet || []),
       ...(categories.toppingsSavory || []),
@@ -286,7 +315,7 @@ onMounted(async () => {
     loading.value = false
   }
 
-  // restaura carrinho salvo localmente
+  // 🔁 Restaura carrinho salvo anteriormente no navegador
   const savedCart = localStorage.getItem('crepegirl_cart')
   if (savedCart) {
     const parsed = JSON.parse(savedCart)
@@ -300,7 +329,10 @@ onMounted(async () => {
   }
 })
 
-/* ---------- CART OPS ---------- */
+/* ======================================================
+ 🛒 OPERAÇÕES DO CARRINHO
+------------------------------------------------------ */
+// Adiciona um novo item (ou aumenta quantidade se já existir)
 function addToCart(item, addons = []) {
   const variation = item.variations?.[0]
   if (!variation || variation.price_cents == null) return
@@ -312,14 +344,17 @@ function addToCart(item, addons = []) {
       addonsEqual(i.addons || [], normalizedAddons)
   )
 
+  // Se o item já existe com as mesmas customizações, só aumenta a quantidade
   if (found) {
     found.quantity = Number(found.quantity || 1) + 1
   } else {
+    // Gera um ID único para o item no carrinho
     const lineId = crypto?.randomUUID
       ? crypto.randomUUID()
       : `${variation.id}-${Date.now()}-${Math.random()
           .toString(36)
           .slice(2)}`
+    // Adiciona ao carrinho
     cart.value.push({
       lineId,
       id: item.id,
@@ -333,22 +368,31 @@ function addToCart(item, addons = []) {
   }
 }
 
+// Remove 1 unidade de um item, ou remove totalmente se for o último
 function removeFromCartByCartItem(cartItem) {
   const idx = cart.value.findIndex((i) => i.lineId === cartItem.lineId)
   if (idx === -1) return
   if (cart.value[idx].quantity > 1) cart.value[idx].quantity--
   else cart.value.splice(idx, 1)
 }
+
+// Aumenta a quantidade de um item diretamente pelo carrinho
 function addFromCartItem(cartItem) {
   cartItem.quantity++
 }
 
-/* ---------- TOTAL ---------- */
+/* ======================================================
+ 💵 TOTAL GERAL DO CARRINHO
+------------------------------------------------------ */
+// Soma o total de todos os itens + addons
 const total = computed(() =>
   cart.value.reduce((acc, item) => acc + getItemTotalCents(item), 0)
 )
 
-/* ---------- PERSIST ---------- */
+/* ======================================================
+ 💾 SINCRONIZAÇÃO AUTOMÁTICA DO CARRINHO
+------------------------------------------------------ */
+// Salva o carrinho no localStorage sempre que houver alteração
 watch(
   cart,
   (val) => {
@@ -357,18 +401,25 @@ watch(
   { deep: true }
 )
 
-/* ---------- NAV ---------- */
+/* ======================================================
+ 🧾 NAVEGAÇÃO — AVANÇAR PARA O CHECKOUT
+------------------------------------------------------ */
 function goToCheckout() {
   navigateTo('/order/checkout')
 }
 
-/* ---------- MODAL ---------- */
+/* ======================================================
+ 🎛️ MODAL DE CUSTOMIZAÇÃO
+------------------------------------------------------ */
+// Abre o modal de customização ao adicionar um novo item
 function openCustomizationForNew(item) {
   selectedItemForCustomization.value = item
   selectedCartItemForCustomization.value = null
   selectedAddons.value = []
   showCustomizationModal.value = true
 }
+
+// Abre o modal para editar um item já existente no carrinho
 function openCustomizationForExisting(cartItem) {
   selectedCartItemForCustomization.value = cartItem
   selectedItemForCustomization.value =
@@ -376,12 +427,16 @@ function openCustomizationForExisting(cartItem) {
   selectedAddons.value = cartItem.addons ? [...cartItem.addons] : []
   showCustomizationModal.value = true
 }
+
+// Fecha o modal e reseta os estados de customização
 function closeCustomization() {
   showCustomizationModal.value = false
   selectedItemForCustomization.value = null
   selectedCartItemForCustomization.value = null
   selectedAddons.value = []
 }
+
+// Confirma as customizações feitas e atualiza ou adiciona o item
 function confirmCustomization() {
   const normalized = normalizeAddons(selectedAddons.value)
   if (selectedCartItemForCustomization.value) {
