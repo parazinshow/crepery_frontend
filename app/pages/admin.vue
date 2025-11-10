@@ -1,12 +1,35 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 
-const token = ref(localStorage.getItem('admin_token') || '')
+const email = ref('')
+const password = ref('')
+const token = ref('')
 const orders = ref([])
 const loading = ref(false)
 const error = ref('')
 
-// ✅ Busca pedidos pendentes do backend
+if (process.client) {
+  token.value = localStorage.getItem('admin_token') || ''
+}
+
+/* 🔐 Faz login com e-mail/senha e salva o JWT */
+async function login() {
+  error.value = ''
+  try {
+    const res = await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: { email: email.value, password: password.value },
+    })
+    token.value = res.token
+    localStorage.setItem('admin_token', token.value)
+    await loadOrders()
+  } catch (err) {
+    console.error('Erro ao fazer login:', err)
+    error.value = 'Credenciais inválidas.'
+  }
+}
+
+/* ✅ Busca pedidos pendentes */
 async function loadOrders() {
   if (!token.value) return
   loading.value = true
@@ -19,27 +42,27 @@ async function loadOrders() {
     orders.value = res.orders || []
   } catch (err) {
     console.error('Erro ao buscar pedidos:', err)
-    error.value = 'Erro ao carregar pedidos. Verifique o token.'
+    error.value = 'Erro ao carregar pedidos.'
   } finally {
     loading.value = false
   }
 }
 
-// ✅ Marca pedido como concluído
+/* ✅ Marca pedido como concluído */
 async function markDone(id) {
   try {
     await $fetch(`/api/order/${id}/done`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token.value}` },
     })
-    orders.value = orders.value.filter(o => o.id !== id)
+    orders.value = orders.value.filter((o) => o.id !== id)
   } catch (err) {
     console.error('Erro ao marcar pedido como done:', err)
     alert('❌ Erro ao marcar pedido como concluído.')
   }
 }
 
-// ✅ Força atualização do cache do menu
+/* ✅ Atualiza cache do menu */
 async function refreshMenu() {
   try {
     await $fetch('/api/order/menu?refresh=true', {
@@ -52,39 +75,47 @@ async function refreshMenu() {
   }
 }
 
-// 🔁 Atualização automática de pedidos a cada 30s
 onMounted(() => {
-  if (token.value) {
+  if (process.client && token.value) {
     loadOrders()
     setInterval(loadOrders, 30000)
   }
 })
 
-// 💾 Login manual via token JWT
-function saveToken() {
-  localStorage.setItem('admin_token', token.value)
-  loadOrders()
+function logout() {
+  if (process.client) {
+    localStorage.removeItem('admin_token')
+    location.reload()
+  }
 }
 </script>
+
 
 <template>
   <div class="p-6 max-w-4xl mx-auto">
     <h1 class="text-3xl font-bold mb-6">🧾 Painel da Crêperie</h1>
 
-    <!-- 🔐 Se não tiver token, pede o login -->
-    <div v-if="!token" class="mb-6 flex items-center gap-3">
+    <!-- 🔐 Login por e-mail e senha -->
+    <div v-if="!token" class="mb-6 space-y-3">
       <input
-        v-model="token"
+        v-model="email"
+        type="email"
+        placeholder="E-mail do administrador"
+        class="border px-3 py-2 rounded w-full"
+      />
+      <input
+        v-model="password"
         type="password"
-        placeholder="Insira o token JWT"
+        placeholder="Senha"
         class="border px-3 py-2 rounded w-full"
       />
       <button
-        @click="saveToken"
-        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        @click="login"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
       >
         Entrar
       </button>
+      <p v-if="error" class="text-red-600 text-center">{{ error }}</p>
     </div>
 
     <!-- ✅ Painel Admin -->
@@ -99,7 +130,7 @@ function saveToken() {
             🔁 Atualizar Menu
           </button>
           <button
-            @click="() => { localStorage.removeItem('admin_token'); location.reload() }"
+            @click="logout"
             class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
           >
             Sair

@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     // 📦 Busca todos os pedidos no banco de dados que ainda estão "abertos"
     const orders = await prisma.order.findMany({
       where: {
-        status: { not: 'done' },  // ❗ Exclui pedidos já finalizados
+        status: { not: 'DONE' },  // ❗ Exclui pedidos já finalizados
       },
       include: { items: true },   // 🔗 Inclui os itens de cada pedido (relação 1:N)
       orderBy: { createdAt: 'desc' }, // ⏰ Mostra do mais recente para o mais antigo

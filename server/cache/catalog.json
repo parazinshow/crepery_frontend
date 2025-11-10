@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-11-10T02:44:05.108Z",
+  "timestamp": "2025-11-10T03:50:06.240Z",
   "data": {
     "tax": {
       "id": "EX2BKFSR4DTWPTV2MY2XGHGR",
@@ -75,6 +75,21 @@
             }
           ],
           "image_url": "https://items-images-sandbox.s3.us-west-2.amazonaws.com/files/dcf910894989da9e1bc174e6c31b1e34b2367868/original.png"
+        },
+        {
+          "id": "66WKHIPTOJ6VG2ARK6Z5LWES",
+          "name": "Caprese",
+          "description": "",
+          "image_ids": [],
+          "variations": [
+            {
+              "id": "BOW4YKSYG4OAO5UTBFEE6UYA",
+              "name": "Regular",
+              "price_cents": 1700,
+              "currency": "USD"
+            }
+          ],
+          "image_url": null
         }
       ],
       "drinks": [
