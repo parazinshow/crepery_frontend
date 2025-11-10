@@ -17,8 +17,8 @@
       <div class="text-center">
         <p class="text-sm text-gray-600">Thank you for your order!</p>
         <p class="mt-1">
-          <b>Order ID:</b>
-          <span class="font-mono text-gray-700">{{ displayOrder.id }}</span>
+          <b>Order #</b>
+          <span class="font-mono text-gray-700">{{ displayOrder.dailyNumber }}</span>
         </p>
         <p
           class="mt-2 inline-block px-3 py-1 rounded-full text-sm font-semibold"
@@ -51,6 +51,10 @@
         </ul>
       </div>
 
+      <!-- Taxes paid -->
+      <div class="text-right font-semibold text-lg border-t pt-2">
+        Tax: ${{ (taxPaid / 100).toFixed(2) }}
+      </div>
       <!-- Totais -->
       <div class="text-right font-semibold text-lg border-t pt-2">
         Total: ${{ (displayOrder.totalCents / 100).toFixed(2) }} {{ displayOrder.currency }}
@@ -170,6 +174,9 @@ const displayOrder = computed(() => {
   const cardBrand = o.card_details?.card?.card_brand ?? null
   const last4 = o.card_details?.card?.last_4 ?? null
 
+  //Order Number
+  const dailyNumber = o.dailyNumber ?? null
+
   // Retorna tudo padronizado para a interface
   return {
     id,
@@ -180,7 +187,8 @@ const displayOrder = computed(() => {
     createdAt,
     items,
     cardBrand,
-    last4
+    last4,
+    dailyNumber
   }
 })
 
@@ -200,6 +208,29 @@ const placedOn = computed(() => {
     return String(d)
   }
 })
+
+/**
+ * 💵 Valor pago em taxas (calculado a partir da porcentagem salva)
+ * 
+ * Usa a taxa armazenada no localStorage (ex: 9.4%)
+ * e calcula quanto desse total corresponde à tax.
+ */
+const taxPaid = computed(() => {
+  const order = displayOrder.value
+  if (!order?.totalCents) return 0
+
+  // tenta ler a tax salva no navegador
+  const savedTax = Number(localStorage.getItem('crepegirl_tax_percentage') || 9.4)
+  const taxRate = savedTax / 100
+
+  // calcula quanto do total corresponde à tax
+  const taxAmount = order.totalCents - (order.totalCents / (1 + taxRate))
+
+  // arredonda para centavos e garante que nunca seja negativo
+  return Math.round(Math.max(taxAmount, 0))
+})
+
+
 </script>
 
 

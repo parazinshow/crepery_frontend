@@ -9,7 +9,9 @@ datasource db {
 
 model Order {
   id            String      @id @default(cuid())
-  email         String
+  dailyNumber   Int      // número sequencial do dia
+  dateKey       String   // chave diária para reset (ex: 2025-11-10)
+  email         String?
   totalAmount   Int
   currency      String      @default("USD")
   squareId      String      @unique

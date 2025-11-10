@@ -149,6 +149,9 @@ export default defineEventHandler(async (event) => {
       return { success: false, message: 'Pagamento não concluído', payment }
     }
 
+    // gera número diário pro OrderNumber
+    const { nextNumber, today } = await getDailyOrderNumber()
+
     // 7️⃣ Salva o pedido no banco SQLite via Prisma
     //    Inclui informações principais e os itens do pedido.
     const savedOrder = await prisma.order.create({
@@ -160,6 +163,8 @@ export default defineEventHandler(async (event) => {
         squareOrder: orderId,     // ID do pedido Square
         receiptUrl: payment.receipt_url || null,
         status: payment.status,   // normalmente "COMPLETED"
+        dailyNumber: nextNumber,
+        dateKey: today,
         items: {
           create: verifiedItems.map((i) => ({
             name: i.name,
@@ -176,6 +181,7 @@ export default defineEventHandler(async (event) => {
       await sendOrderConfirmationEmail({
         to: email,
         orderId: payment.id, // usamos o ID do pagamento no link do QR
+        orderNumber: nextNumber,
         pickupTime: '15 minutes',
         receiptUrl: payment.receipt_url || 'https://squareup.com/receipts',
         items: verifiedItems.map((i) => ({

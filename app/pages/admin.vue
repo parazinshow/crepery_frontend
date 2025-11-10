@@ -156,7 +156,10 @@ function logout() {
             }"
           >
             <div class="flex justify-between items-center">
-              <h2 class="font-semibold text-lg">Pedido #{{ order.squareId }}</h2>
+              <h2 class="font-semibold text-lg">
+                Pedido #{{ order.dailyNumber }} — {{ order.email }}
+              </h2>
+
               <button
                 @click="markDone(order.id)"
                 class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded"

@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer' // 📧 Biblioteca usada para enviar e-mails
 import QRCode from 'qrcode'         // 🔳 Biblioteca para gerar QR Codes em base64
 
 // Função principal que envia o e-mail de confirmação de pedido
-export async function sendOrderConfirmationEmail({ to, orderId, pickupTime, receiptUrl, items = [] }) {
+export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pickupTime, receiptUrl, items = [] }) {
   // 🚨 Garante que o e-mail de destino foi informado
   if (!to) throw new Error('Missing destination email address')
 
@@ -51,7 +51,7 @@ export async function sendOrderConfirmationEmail({ to, orderId, pickupTime, rece
     <div style="font-family: Arial, sans-serif; color:#333;">
       <h2>🥞 The Crêpe Girl — Order Confirmation</h2>
       <p>Thank you for your order!</p>
-      <p>Your order <b>#${orderId}</b> will be ready in <b>${pickupTime || '15 minutes'}</b>.</p>
+      <p>Your order <b>#${orderNumber}</b> will be ready in <b>${pickupTime || '15 minutes'}</b>.</p>
 
       <h3 style="margin-top:15px;">🧾 Order summary</h3>
       ${itemsHtml}
@@ -81,7 +81,7 @@ export async function sendOrderConfirmationEmail({ to, orderId, pickupTime, rece
   await transporter.sendMail({
     from: `"The Crêpe Girl" <${process.env.EMAIL_USER}>`,
     to,
-    subject: `Order #${orderId} Confirmation`,
+    subject: `Order #${orderNumber} Confirmation`,
     html: htmlContent,
     attachments: [
       {
