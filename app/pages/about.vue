@@ -1,12 +1,13 @@
 <script setup>
+	// Importa funções essenciais do Vue e inicializa os componentes do Flowbite
 	import { onMounted, ref } from "vue";
 	import { initFlowbite } from "flowbite";
 
 	onMounted(() => {
-		initFlowbite();
+		initFlowbite(); // ativa o carrossel e outros elementos JS do Flowbite
 	});
 
-	// Array de imagens do carrossel
+	// Lista reativa com as imagens do carrossel (caminho e texto alternativo)
 	const photos = ref([
 		{ src: "/images/about-1.jpg", alt: "Our story photo 1" },
 		{ src: "/images/about-2.jpg", alt: "Our story photo 2" },
@@ -17,24 +18,26 @@
 </script>
 
 <template>
+	<!-- Cabeçalho fixo da página -->
 	<HeaderNav />
 
+	<!-- Área principal da seção "About" -->
 	<main
 		class="min-h-[calc(100vh-100px)] bg-primary-50 flex items-center justify-center"
 	>
 		<section
 			class="mx-auto p-10 flex flex-col items-center gap-10 w-full max-w-screen-xl"
 		>
-			<!-- TÍTULO CENTRALIZADO -->
+			<!-- Título central da página -->
 			<h1
 				class="text-3xl md:text-7xl font-bold text-primary-700 text-center w-full"
 			>
 				Our Story
 			</h1>
 
-			<!-- BLOCO COM TEXTO E CARROSSEL -->
+			<!-- Bloco com o texto descritivo e o carrossel lado a lado -->
 			<div class="flex flex-col lg:flex-row items-center gap-10 w-full">
-				<!-- TEXTO -->
+				<!-- Texto contando a história do negócio -->
 				<div class="w-full lg:w-1/2 space-y-4 text-justify">
 					<p class="text-gray-700 leading-relaxed">
 						Born from a lifelong love of French flavors and mountain living, The
@@ -63,7 +66,7 @@
 					</p>
 				</div>
 
-				<!-- CARROSSEL FLOWBITE -->
+				<!-- Carrossel de imagens feito com Flowbite -->
 				<div class="w-full lg:w-1/2 rounded-lg shadow-lg overflow-hidden">
 					<div
 						id="about-carousel"
@@ -71,9 +74,9 @@
 						data-carousel="slide"
 						data-carousel-interval="3000"
 					>
-						<!-- Slides -->
+						<!-- Área das imagens com transição automática -->
 						<div
-							class="relative w-full aspect-[4/3] overflow-hidden rounded-lg"
+							class="relative w-full aspect-[3/4] overflow-hidden rounded-lg"
 						>
 							<div
 								v-for="(item, index) in photos"
@@ -89,7 +92,7 @@
 							</div>
 						</div>
 
-						<!-- Indicadores -->
+						<!-- Indicadores e botões de navegação -->
 						<div
 							class="absolute z-30 flex -translate-x-1/2 bottom-4 left-1/2 space-x-3 rtl:space-x-reverse"
 						>
@@ -103,7 +106,7 @@
 							></button>
 						</div>
 
-						<!-- Botão anterior -->
+						<!-- Botões anterior e próximo -->
 						<button
 							type="button"
 							class="absolute top-0 start-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none"
@@ -114,7 +117,6 @@
 							>
 								<svg
 									class="w-4 h-4 text-white rtl:rotate-180"
-									aria-hidden="true"
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 6 10"
@@ -130,7 +132,6 @@
 							</span>
 						</button>
 
-						<!-- Botão próximo -->
 						<button
 							type="button"
 							class="absolute top-0 end-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none"
@@ -141,7 +142,6 @@
 							>
 								<svg
 									class="w-4 h-4 text-white rtl:rotate-180"
-									aria-hidden="true"
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 6 10"
@@ -164,5 +164,5 @@
 </template>
 
 <style scoped>
-	/* sem CSS extra — tudo via Tailwind */
+	/* Nenhum CSS adicional — tudo feito com Tailwind */
 </style>

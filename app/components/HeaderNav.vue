@@ -1,6 +1,6 @@
 <template>
 	<header>
-		<nav class="relative z-30 bg-primary-100 px-2.5 sm:px-5 py-2.5">
+		<nav class="relative z-30 bg-primary-100 px-2.5 sm:px-5 py-2.5 shadow-md">
 			<div class="flex items-center mx-auto max-w-screen-xl h-20">
 				<!-- Logo -->
 				<NuxtLink to="/" class="flex items-center">
@@ -30,7 +30,7 @@
 				<!-- Ações à direita -->
 				<div class="flex items-center ml-auto">
 					<a
-						href="#"
+						href="/order"
 						class="hidden lg:inline-flex text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5"
 					>
 						ORDER NOW
@@ -61,7 +61,7 @@
 				<ul class="flex flex-col items-center font-medium space-y-3">
 					<li>
 						<a
-							href="#"
+							href="/order"
 							class="inline-flex justify-center text-white bg-primary-700 font-bold rounded-lg text-sm px-4 py-2"
 						>
 							ORDER NOW
@@ -81,10 +81,8 @@
 
 <script setup>
 	const menuItems = [
-		{ name: "MENU", to: "/menu" },
-		// { name: "CAKES", to: "/cakes" },
-		// { name: "RETAIL", to: "/retail" },
-		// { name: "CATERING", to: "/catering" },
+		{ name: "CAKES", to: "/cakes" },
+		{ name: "RETAIL", to: "/retail" },
 		{ name: "OUR STORY", to: "/about" },
 	];
 </script>

@@ -73,7 +73,7 @@
         <a
           :href="displayOrder.receiptUrl"
           target="_blank"
-          class="inline-block bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700 transition"
+          class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition"
         >
           View Square Receipt
         </a>

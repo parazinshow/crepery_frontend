@@ -280,7 +280,7 @@ function goBack() {
         type="email"
         required
         placeholder="Enter your email"
-        class="w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </div>
 
@@ -306,7 +306,7 @@ function goBack() {
     <div
       v-if="!appleAvailable && !googleAvailable"
       ref="cardContainer"
-      class="border border-gray-300 p-3 rounded-md"
+      class="border border-gray-300 p-3 rounded-lg"
     ></div>
 
     <button

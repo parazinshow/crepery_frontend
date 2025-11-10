@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+		class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
 	>
 		<img :src="image" :alt="title" class="w-full h-48 object-cover" />
 
