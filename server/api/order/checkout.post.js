@@ -12,6 +12,11 @@ import { sendOrderConfirmationEmail } from '../../utils/emailClient.js' // ✉�
 import prisma from '../../utils/db.js'                                 // 🧱 Cliente Prisma (SQLite)
 import { validateSquareItems } from '../../utils/validateSquareItems.js' // ✅ Valida itens direto no catálogo da Square
 
+// Cache path para ler a tax
+import { promises as fs } from 'fs'
+import path from 'path'
+const CACHE_PATH = path.resolve('./server/cache/catalog.json')
+
 export default defineEventHandler(async (event) => {
   try {
     // 1️⃣ Lê o corpo da requisição enviada pelo frontend
@@ -37,6 +42,30 @@ export default defineEventHandler(async (event) => {
 
     const { verifiedItems, verifiedTotal } = validation // verifiedTotal em centavos
 
+    // ✅ Pega o valor da taxa (em % → ex: 9.4)
+    // Lê o cache antes de criar o pedido
+    let cached = null
+    let taxPercentage = 9.4 // valor padrão
+    let taxName = 'Vail Sales Tax'
+
+    try {
+      const file = await fs.readFile(CACHE_PATH, 'utf8')
+      cached = JSON.parse(file)
+      if (cached?.data?.tax?.percentage) {
+        taxPercentage = Number(cached.data.tax.percentage)
+      }
+      if (cached?.data?.tax?.name) {
+        taxName = cached.data.tax.name
+      }
+    } catch (err) {
+      console.warn('⚠️ Falha ao ler cache, usando valores padrão:', err)
+    }
+
+    // 💰 Calcula valor total com taxa
+    const taxRate = taxPercentage / 100
+    const totalWithTax = Math.round(verifiedTotal * (1 + taxRate))
+    const taxAmount = Math.round(verifiedTotal * taxRate)
+
     // 4️⃣ Pega as credenciais da Square (ambiente sandbox ou produção)
     const { baseUrl, token } = getSquareConfig()
     const isProd = process.env.NODE_ENV === 'production'
@@ -61,13 +90,20 @@ export default defineEventHandler(async (event) => {
               currency: 'USD',
             },
           }
-          // Se o item tiver variationId, associa ao catálogo
+
           if (i.variationId) {
             line.catalog_object_id = i.variationId
           }
           return line
         }),
-        // ⚙️ (Futuro) Aqui é possível adicionar taxas, descontos ou taxas de serviço
+        taxes: [
+          {
+            name: taxName,
+            percentage: taxPercentage.toString(),
+            applied_money: { amount: taxAmount, currency: 'USD' },
+            scope: 'ORDER',
+          },
+        ],
       },
       idempotency_key: crypto.randomUUID(), // garante que pedidos duplicados não sejam criados
     }
@@ -100,7 +136,7 @@ export default defineEventHandler(async (event) => {
         source_id: sourceId,
         idempotency_key: crypto.randomUUID(),
         amount_money: {
-          amount: Math.round(verifiedTotal), // já é em centavos (ex: 2600 = $26.00)
+          amount: Math.round(totalWithTax), // já é em centavos (ex: 2600 = $26.00)
           currency: 'USD',
         },
         order_id: orderId,        // 🔗 vincula o pagamento ao pedido
@@ -118,7 +154,7 @@ export default defineEventHandler(async (event) => {
     const savedOrder = await prisma.order.create({
       data: {
         email: email || null,
-        totalAmount: Math.round(verifiedTotal), // guarda o valor total em centavos
+        totalAmount: Math.round(totalWithTax), // guarda o valor total em centavos
         currency: payment.amount_money.currency,
         squareId: payment.id,     // ID do pagamento Square
         squareOrder: orderId,     // ID do pedido Square
@@ -158,6 +194,9 @@ export default defineEventHandler(async (event) => {
       order: savedOrder,
       payment,
       emailSent: !!email,
+      taxPercentage,
+      taxAmount,
+      totalWithTax,
     }
 
   } catch (err) {

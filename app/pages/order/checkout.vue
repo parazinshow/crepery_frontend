@@ -11,6 +11,7 @@ const cart = ref([])                // itens do carrinho
 const message = ref('')             // mensagens de status (erro/sucesso)
 const messageClass = ref('')        // classe de cor dinâmica para mensagens
 const loading = ref(false)          // estado de carregamento durante o pagamento
+const taxRate = ref(0)              // porcentagem de tax aplicada
 
 // Referências para elementos HTML e instâncias Square
 const cardContainer = ref(null)     // container do input de cartão
@@ -36,6 +37,15 @@ const total = computed(() =>
   )
 )
 
+// subtotal sem tax
+const subtotal = computed(() => total.value)
+
+// valor da tax em centavos
+const taxAmount = computed(() => Math.round(subtotal.value * (taxRate.value /100)))
+
+// total final (subtotal + tax)
+const totalWithTax = computed(() => subtotal.value + taxAmount.value)
+
 /* --------------------------------------------------------
  🚀 onMounted — Inicializa carrinho e Square Payments
 ----------------------------------------------------------- */
@@ -43,6 +53,11 @@ onMounted(async () => {
   // Recupera carrinho salvo no navegador
   const savedCart = localStorage.getItem('crepegirl_cart')
   let loaded = savedCart ? JSON.parse(savedCart) : []
+
+  // 🔹 Recupera tax salva no localStorage (ou usa padrão de 9.4%)
+  const savedTax = localStorage.getItem('crepegirl_tax_percentage')
+  taxRate.value = savedTax ? Number(savedTax) : 9.4
+
 
   // 🔸 Limpeza automática de dados inválidos (proteção extra)
   loaded = loaded.filter(
@@ -267,8 +282,12 @@ function goBack() {
       </div>
     </div>
 
-    <div class="text-center text-lg font-semibold mb-3 pt-3">
-      Total: <span class="text-green-700">${{ (total / 100).toFixed(2) }}</span>
+    <div class="text-center text-lg font-semibold mb-3 pt-3 space-y-1">
+      <div>Subtotal: ${{ (subtotal / 100).toFixed(2) }}</div>
+      <div>Tax ({{ (taxRate).toFixed(2) }}%): ${{ (taxAmount / 100).toFixed(2) }}</div>
+      <div class="font-bold text-green-700">
+        Total: ${{ (totalWithTax / 100).toFixed(2) }}
+      </div>
     </div>
 
     <!-- Campo de email -->

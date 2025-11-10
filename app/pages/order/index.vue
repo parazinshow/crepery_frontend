@@ -265,6 +265,11 @@ onMounted(async () => {
       toppingsSavory: categories.toppingsSavory || [],
     }
 
+    //adiciona tax no localStorage
+    if (res?.tax != null) {
+      localStorage.setItem('crepegirl_tax_percentage', String(res.tax.percentage))
+    }
+
     // cria lista de addons a partir dos toppings do cache
     const toppings = [
       ...(categories.toppingsSweet || []),
