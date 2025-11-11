@@ -79,13 +79,15 @@
                   <p class="text-xl font-semibold">
                     <!-- Se só tem 1 unidade, mostra o preço simples -->
                     <span v-if="cartItem.quantity === 1">
-                      ${{ ((cartItem.price_cents || 0) / 100).toFixed(2) }}
+                      ${{
+                        ((getItemTotalCents(cartItem) || 0) / 100).toFixed(2)
+                      }}
                     </span>
 
                     <!-- Se tem mais de 1, mostra "N x preço" -->
                     <span v-else>
                       {{ cartItem.quantity }} x ${{
-                        ((cartItem.price_cents || 0) / 100).toFixed(2)
+                        ((getItemTotalCents(cartItem) || 0) / 100).toFixed(2)
                       }}
                     </span>
                   </p>
@@ -97,14 +99,10 @@
                     v-if="cartItem.addons && cartItem.addons.length"
                     class="text-base space-y-0.5"
                   >
-                    <li v-for="id in cartItem.addons" :key="id">
-                      {{ getAddonById(id)?.label }}
+                    <li v-for="addon in cartItem.addons" :key="addon.id">
+                      {{ addon?.label }}
                       <span class="ml-4">
-                        +${{
-                          ((getAddonById(id)?.price_cents || 0) / 100).toFixed(
-                            2
-                          )
-                        }}
+                        +${{ ((addon?.price_cents || 0) / 100).toFixed(2) }}
                       </span>
                     </li>
                   </ul>
@@ -325,15 +323,16 @@
   function getAddonsPriceCents(cartItem) {
     if (!cartItem.addons?.length) return 0
     return cartItem.addons.reduce(
-      (sum, id) => sum + (getAddonById(id)?.price_cents || 0),
+      (sum, addon) => sum + (addon.price_cents || 0),
       0
     )
   }
 
-  // Calcula o preço total de um item em centavos
+  // Calcula o preço total de um item em centavos (base + addons)
   function getItemTotalCents(cartItem) {
     const base = Number(cartItem.price_cents || 0)
-    return base * Number(cartItem.quantity || 1)
+    const addonsTotal = getAddonsPriceCents(cartItem)
+    return (base + addonsTotal) * Number(cartItem.quantity || 1)
   }
 
   /* ======================================================
@@ -402,23 +401,21 @@
     if (!variation || variation.price_cents == null) return
 
     const normalizedAddons = normalizeAddons(addons)
+
     const found = cart.value.find(
       (i) =>
         i.variationId === variation.id &&
-        addonsEqual(i.addons || [], normalizedAddons)
+        addonsEqual(
+          (i.addons || []).filter((a) => a && a.id).map((a) => a.id) || [],
+          normalizedAddons
+        )
     )
-    // Retrieve the addons total in cents
-    var addonsTotal_cents = 0
-    if (addons?.length)
-      addonsTotal_cents = addons.reduce(
-        (sum, id) => sum + (getAddonById(id)?.price_cents || 0),
-        0
-      )
 
     // Se o item já existe com as mesmas customizações, só aumenta a quantidade
     if (found) {
       found.quantity = Number(found.quantity || 1) + 1
     } else {
+      const addons_array = normalizedAddons.map(getAddonById)
       // Gera um ID único para o item no carrinho
       const lineId = crypto?.randomUUID
         ? crypto.randomUUID()
@@ -429,10 +426,10 @@
         id: item.id,
         variationId: variation.id,
         name: item.name,
-        price_cents: Number(variation.price_cents || 0) + addonsTotal_cents,
+        price_cents: Number(variation.price_cents || 0),
         quantity: 1,
         image_url: item.image_url,
-        addons: normalizedAddons,
+        addons: addons_array,
       })
     }
   }
@@ -454,8 +451,8 @@
  💵 TOTAL GERAL DO CARRINHO
 ------------------------------------------------------ */
   // Soma o total de todos os itens + addons
-  const total = computed(() =>
-    cart.value.reduce((acc, item) => acc + getItemTotalCents(item), 0)
+  const total = computed(
+    () => cart.value.reduce((acc, item) => acc + getItemTotalCents(item), 0)
   )
 
   /* ======================================================
@@ -493,7 +490,9 @@
     selectedCartItemForCustomization.value = cartItem
     selectedItemForCustomization.value =
       menuFlat.value.find((i) => i.id === cartItem.id) || null
-    selectedAddons.value = cartItem.addons ? [...cartItem.addons] : []
+    selectedAddons.value = Array.isArray(cartItem.addons)
+      ? cartItem.addons.filter((a) => a && a.id).map((a) => a.id)
+      : []
     showCustomizationModal.value = true
   }
 
@@ -509,8 +508,11 @@
   function confirmCustomization() {
     const normalized = normalizeAddons(selectedAddons.value)
     if (selectedCartItemForCustomization.value) {
-      selectedCartItemForCustomization.value.addons = normalized
+      // Atualiza os add-ons do item já existente no carrinho
+      selectedCartItemForCustomization.value.addons =
+        normalized.map(getAddonById)
     } else if (selectedItemForCustomization.value) {
+      // Adiciona um novo item já com esses add-ons
       addToCart(selectedItemForCustomization.value, normalized)
     }
     closeCustomization()

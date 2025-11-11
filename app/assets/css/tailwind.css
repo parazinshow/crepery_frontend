@@ -3,39 +3,51 @@
 @tailwind utilities;
 
 @layer components {
-	.background {
-		@apply bg-primary-50;
+  .background {
+    @apply bg-brand-50;
+  }
+	.hero-title {
+		@apply font-garamond font-semibold italic text-brand-50 text-6xl lg:text-8xl drop-shadow-lg
 	}
-	.modal {
-		@apply bg-white rounded-lg shadow-lg;
+	.hero-subtitle {
+		@apply font-garamond text-brand-50 text-xl drop-shadow-md
 	}
-	.button {
-		@apply font-semibold rounded-lg;
-	}
-	.default-button {
-		@apply button bg-primary-600 text-white disabled:opacity-50;
-	}
-	.default-button-desktop {
-		@apply default-button hover:bg-primary-800 transition-colors duration-200 ease-in-out;
-	}
-	.cancel-button {
-		@apply button bg-white text-gray-500 border border-gray-400;
-	}
-	.cancel-button-desktop {
-		@apply cancel-button hover:bg-gray-100 transition-colors duration-200 ease-in-out;
-	}
-	.tooltip-button {
-		@apply button bg-gray-200 text-gray-700;
-	}
-	.tooltip-button-desktop {
-		@apply tooltip-button hover:bg-gray-300;
-	}
-	.mobile-nav-item {
-		@apply py-2
+  .page-title {
+    @apply text-brand-800 font-garamond font-bold italic;
+  }
+	.page-body {
+    @apply text-brand-900 font-abhaya font-semibold text-lg;
+  }
+  .modal {
+    @apply bg-white rounded-lg shadow-lg;
+  }
+  .button {
+    @apply font-semibold rounded-lg;
+  }
+  .default-button {
+    @apply button bg-primary-600 text-white disabled:opacity-50;
+  }
+  .default-button-desktop {
+    @apply default-button hover:bg-primary-800 transition-colors duration-200 ease-in-out;
+  }
+  .cancel-button {
+    @apply button bg-white text-gray-500 border border-gray-400;
+  }
+  .cancel-button-desktop {
+    @apply cancel-button hover:bg-gray-100 transition-colors duration-200 ease-in-out;
+  }
+  .tooltip-button {
+    @apply button bg-gray-200 text-gray-700;
+  }
+  .tooltip-button-desktop {
+    @apply tooltip-button hover:bg-gray-300;
+  }
+  .mobile-nav-item {
+    @apply py-2
 		px-3;
-	}
-	.desktop-nav-item {
-		@apply py-2
+  }
+  .desktop-nav-item {
+    @apply py-2
 		pr-4
 		pl-3 
 		text-primary-800 
@@ -43,5 +55,5 @@
 		hover:text-primary-100 
 		rounded-lg
 		transition-colors duration-200 ease-in-out;
-	}
+  }
 }

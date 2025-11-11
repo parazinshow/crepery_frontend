@@ -4,7 +4,7 @@
 	<HeaderNav />
 
 	<!-- Hero Section -->
-	<section class="relative w-full h-[calc(100vh-100px)] overflow-hidden">
+	<section class="relative w-full h-[calc(100vh-180px)] overflow-hidden">
 		<!-- Vídeo de fundo -->
 		<video
 			autoplay
@@ -25,13 +25,15 @@
 			class="relative z-10 flex flex-col justify-center items-center text-center h-full px-6"
 		>
 			<h1
-				class="text-white text-4xl md:text-6xl font-extrabold max-w-3xl leading-tight drop-shadow-lg"
+				class="hero-title max-w-4xl leading-tight"
 			>
 				Your french window down the slopes
 			</h1>
-			<p class="mt-4 text-lg text-gray-100 max-w-2xl drop-shadow-md">
+			<p class="hero-subtitle mt-4 max-w-2xl">
 				Freshly made crepes and coffee, right where the mountains meet France.
 			</p>
 		</div>
 	</section>
+
+	<Footer />
 </template>

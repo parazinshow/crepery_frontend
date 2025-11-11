@@ -23,14 +23,14 @@
 
 	<!-- Área principal da seção "About" -->
 	<main
-		class="min-h-[calc(100vh-100px)] bg-primary-50 flex items-center justify-center"
+		class="min-h-[calc(100vh-180px)] background flex items-center justify-center"
 	>
 		<section
 			class="mx-auto p-10 flex flex-col items-center gap-10 w-full max-w-screen-xl"
 		>
 			<!-- Título central da página -->
 			<h1
-				class="text-3xl md:text-7xl font-bold text-primary-700 text-center w-full"
+				class="page-title text-5xl lg:text-7xl text-center w-full"
 			>
 				Our Story
 			</h1>
@@ -38,30 +38,30 @@
 			<!-- Bloco com o texto descritivo e o carrossel lado a lado -->
 			<div class="flex flex-col lg:flex-row items-center gap-10 w-full">
 				<!-- Texto contando a história do negócio -->
-				<div class="w-full lg:w-1/2 space-y-4 text-justify">
-					<p class="text-gray-700 leading-relaxed">
+				<div class="page-body w-full lg:w-1/2 space-y-4 text-justify">
+					<p class="leading-relaxed">
 						Born from a lifelong love of French flavors and mountain living, The
 						Crêpe Girl brings a taste of Paris to the heart of Vail.
 					</p>
-					<p class="text-gray-700 leading-relaxed">
+					<p class="leading-relaxed">
 						Founded by Shana Azerad, a French-American entrepreneur with a
 						passion for hospitality, our little crêpe window started as a summer
 						market stand and quickly became a local favorite.
 					</p>
-					<p class="text-gray-700 leading-relaxed">
+					<p class="leading-relaxed">
 						Inspired by cozy alpine chalets, long ski days, and the simple joy
 						of serving freshly made French comforting food using high-quality,
 						often locally sourced ingredients.
 					</p>
-					<p class="text-gray-700 leading-relaxed">
+					<p class="leading-relaxed">
 						Now nestled on Bridge Street, just steps from the slopes, The Crêpe
 						Girl is ready to flip some crepe and spread lots of smiles.
 					</p>
-					<p class="text-gray-700 leading-relaxed">
+					<p class="leading-relaxed">
 						We are so happy to bring your little French window down the slope —
 						your ski days will never be the same!
 					</p>
-					<p class="text-gray-700 leading-relaxed text-center">
+					<p class="leading-relaxed text-center text-2xl">
 						Bienvenue, and bon appétit!
 					</p>
 				</div>
@@ -161,6 +161,8 @@
 			</div>
 		</section>
 	</main>
+
+	<Footer />
 </template>
 
 <style scoped>
