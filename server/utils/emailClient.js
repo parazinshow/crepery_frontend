@@ -35,14 +35,37 @@ export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pick
   // 🧁 Monta a lista de itens do pedido
   // Cria uma <ul> com cada item em <li>, mostrando nome, quantidade e preço formatado
   // Se não houver itens, mostra um texto “No items found.”
-  const itemsHtml = items.length
-    ? `<ul style="padding-left:15px;margin-top:10px;">${items
-        .map(
-          (i) =>
-            `<li>${i.quantity} × ${i.name} — <b>$${Number(i.price).toFixed(2)}</b></li>`
-        )
-        .join('')}</ul>`
-    : `<p>No items found.</p>`
+const itemsHtml = items.length
+  ? `<ul style="padding-left:15px;margin-top:10px;">${items
+      .map((i) => {
+        // tenta converter addons se for string JSON
+        let addonsList = []
+        try {
+          if (Array.isArray(i.addons)) addonsList = i.addons
+          else if (typeof i.addons === 'string' && i.addons.trim()) {
+            addonsList = JSON.parse(i.addons)
+          }
+        } catch (e) {
+          console.warn('Erro ao parsear addons no email:', e)
+        }
+
+        // gera HTML dos addons, se houver
+        const addonsHtml =
+          addonsList.length > 0
+            ? `<div style="margin:2px 0 0 0; color:#555; font-size:13px;">
+                ${addonsList.map((a) => `<div style="margin-left:18px;">+ ${a}</div>`).join('')}
+              </div>`
+            : ''
+
+        // item principal com addons abaixo
+        return `<li style="margin-bottom:8px;">
+                  ${i.quantity} × ${i.name} — <b>$${Number(i.price).toFixed(2)}</b>
+                  ${addonsHtml}
+                </li>`
+      })
+      .join('')}</ul>`
+  : `<p>No items found.</p>`
+
 
   // 🧠 Monta o corpo HTML completo do e-mail
   // Inclui título, mensagem de agradecimento, tempo de preparo, lista de itens,

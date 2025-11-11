@@ -176,12 +176,29 @@ function logout() {
               <li
                 v-for="item in order.items"
                 :key="item.id"
-                class="flex justify-between border-b py-1"
+                class="flex flex-col border-b py-2"
               >
-                <span>{{ item.quantity }}x {{ item.name }}</span>
-                <span>${{ ((item.price || 0) / 100).toFixed(2) }}</span>
+                <!-- Linha principal com nome e preço -->
+                <div class="flex justify-between items-center">
+                  <span>{{ item.quantity }}x {{ item.name }}</span>
+                  <span>${{ ((item.price || 0) / 100).toFixed(2) }}</span>
+                </div>
+
+                <!-- Lista de toppings, se existirem -->
+                <ul
+                  v-if="item.addons"
+                  class="ml-4 text-sm text-gray-500 list-disc mt-1 space-y-0.5"
+                >
+                  <li
+                    v-for="topping in JSON.parse(item.addons)"
+                    :key="topping"
+                  >
+                    {{ topping }}
+                  </li>
+                </ul>
               </li>
             </ul>
+
 
             <p class="mt-2 font-semibold">
               Total: ${{ ((order.totalAmount || 0) / 100).toFixed(2) }}

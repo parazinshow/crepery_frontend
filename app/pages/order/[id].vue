@@ -35,20 +35,41 @@
       <!-- Itens do pedido (se houver) -->
       <div v-if="displayOrder.items && displayOrder.items.length">
         <h3 class="text-lg font-semibold border-b pb-2 mb-2">🧾 Order Summary</h3>
-        <ul>
-          <li
-            v-for="it in displayOrder.items"
-            :key="it.id || it.name"
-            class="flex justify-between py-1 border-b border-gray-100 last:border-none"
-          >
-            <div>
-              <p>{{ it.quantity }} × {{ it.name }}</p>
-            </div>
-            <p class="font-medium">
-              ${{ ((it.price_cents ?? it.price ?? 0) / 100 * it.quantity).toFixed(2) }}
-            </p>
-          </li>
-        </ul>
+          <ul>
+            <li
+              v-for="it in displayOrder.items"
+              :key="it.id || it.name"
+              class="py-2 border-b border-gray-100 last:border-none"
+            >
+              <div class="flex justify-between">
+                <p>{{ it.quantity }} × {{ it.name }}</p>
+                <p class="font-medium">
+                  ${{
+                    (
+                      (
+                        (it.price_cents ?? it.price ?? 0) +
+                        (parseAddons(it.addons).reduce((sum, name) => sum + (toppingMap.get(name) || 0), 0))
+                      ) / 100 * it.quantity
+                    ).toFixed(2)
+                  }}
+                </p>
+              </div>
+
+              <!-- 🍓 Mostra toppings se existirem -->
+              <ul
+                v-if="it.addons"
+                class="ml-4 mt-1 text-sm text-gray-600 list-disc"
+              >
+                <li
+                  v-for="topping in parseAddons(it.addons)"
+                  :key="topping"
+                >
+                  + {{ topping }}
+                </li>
+              </ul>
+            </li>
+          </ul>
+
       </div>
 
       <!-- Taxes paid -->
@@ -192,6 +213,23 @@ const displayOrder = computed(() => {
   }
 })
 
+// 🔹 Carrega o cache de toppings via endpoint interno
+const { data: cacheData } = await useFetch('/api/catalog-cache')
+
+// 🔹 Cria um mapa rápido com nome → preço
+const toppingMap = new Map()
+try {
+  const toppingsSweet = cacheData.value?.data?.categories?.toppingsSweet || []
+  const toppingsSavory = cacheData.value?.data?.categories?.toppingsSavory || []
+
+  for (const t of [...toppingsSweet, ...toppingsSavory]) {
+    const variation = t.variations?.[0]
+    toppingMap.set(t.name, variation?.price_cents || 0)
+  }
+} catch (e) {
+  console.warn('⚠️ Falha ao mapear toppings:', e)
+}
+
 /* ------------------------------------------------------------
  🕓 FORMATAÇÃO DE DATA LEGÍVEL
 --------------------------------------------------------------- */
@@ -209,6 +247,17 @@ const placedOn = computed(() => {
   }
 })
 
+function parseAddons(addons) {
+  try {
+    if (Array.isArray(addons)) return addons        // já é array (caso venha assim)
+    if (typeof addons === 'string') return JSON.parse(addons) // tenta converter
+  } catch (e) {
+    console.warn('Erro ao parsear addons:', e)
+  }
+  return [] // fallback
+}
+
+
 /**
  * 💵 Valor pago em taxas (calculado a partir da porcentagem salva)
  * 
@@ -219,8 +268,11 @@ const taxPaid = computed(() => {
   const order = displayOrder.value
   if (!order?.totalCents) return 0
 
-  // tenta ler a tax salva no navegador
-  const savedTax = Number(localStorage.getItem('crepegirl_tax_percentage') || 9.4)
+  let savedTax = 9.4 // valor padrão
+  if (process.client) {
+    savedTax = Number(localStorage.getItem('crepegirl_tax_percentage') || 9.4)
+  }
+
   const taxRate = savedTax / 100
 
   // calcula quanto do total corresponde à tax
@@ -229,7 +281,6 @@ const taxPaid = computed(() => {
   // arredonda para centavos e garante que nunca seja negativo
   return Math.round(Math.max(taxAmount, 0))
 })
-
 
 </script>
 

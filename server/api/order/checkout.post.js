@@ -61,10 +61,52 @@ export default defineEventHandler(async (event) => {
       console.warn('⚠️ Falha ao ler cache, usando valores padrão:', err)
     }
 
-    // 💰 Calcula valor total com taxa
+    // Cria um mapa apenas com os toppings (sweet e savory)
+    const toppingMap = new Map()
+
+    try {
+      const toppingsSweet = cached?.data?.categories?.toppingsSweet || []
+      const toppingsSavory = cached?.data?.categories?.toppingsSavory || []
+
+      for (const t of [...toppingsSweet, ...toppingsSavory]) {
+        const variation = t.variations?.[0]
+        toppingMap.set(t.id, {
+          name: t.name,
+          price_cents: variation?.price_cents || 0,
+          variationId: variation?.id || undefined,
+        })
+      }
+    } catch (err) {
+      console.warn('⚠️ Falha ao mapear toppings:', err)
+    }
+
+    // 💰 Soma o valor dos addons no total e cria line_items adicionais
+    let addonsTotalCents = 0
+    const addonLineItems = []
+
+    for (const item of items) {
+      const qty = Number(item.quantity || 1)
+      for (const addonId of item.addons || []) {
+        const addon = toppingMap.get(addonId)
+        if (!addon) continue
+        addonsTotalCents += addon.price_cents * qty
+        addonLineItems.push({
+          name: `+ ${addon.name}`,
+          quantity: String(qty),
+          base_price_money: {
+            amount: addon.price_cents,
+            currency: 'USD',
+          },
+          catalog_object_id: addon.variationId || undefined,
+        })
+      }
+    }
+
+    // 💰 Calcula valor total com taxa (base + addons)
+    const subtotalWithAddons = verifiedTotal + addonsTotalCents
     const taxRate = taxPercentage / 100
-    const totalWithTax = Math.round(verifiedTotal * (1 + taxRate))
-    const taxAmount = Math.round(verifiedTotal * taxRate)
+    const taxAmount = Math.round(subtotalWithAddons * taxRate)
+    const totalWithTax = Math.round(subtotalWithAddons + taxAmount)
 
     // 4️⃣ Pega as credenciais da Square (ambiente sandbox ou produção)
     const { baseUrl, token } = getSquareConfig()
@@ -77,36 +119,33 @@ export default defineEventHandler(async (event) => {
     const SQUARE_VERSION = '2025-01-23' // 🔖 versão da API (mantida fixa para compatibilidade)
 
     // 5️⃣ Cria um pedido (Order) na Square
-    //    Isso permite que o pedido apareça no dashboard e KDS (Kitchen Display System).
+    //    Inclui toppings como line_items separados (sem applied_money)
+    const baseLineItems = verifiedItems.map((i) => ({
+      name: i.name,
+      quantity: String(i.quantity),
+      base_price_money: {
+        amount: i.price_cents,
+        currency: 'USD',
+      },
+      catalog_object_id: i.variationId || undefined,
+    }))
+
     const orderPayload = {
       order: {
         location_id: LOCATION_ID,
-        line_items: verifiedItems.map((i) => {
-          const line = {
-            name: i.name,
-            quantity: String(i.quantity), // precisa ser string segundo a Square API
-            base_price_money: {
-              amount: i.price_cents, // 💵 preço em centavos (ex: 1500 = $15.00)
-              currency: 'USD',
-            },
-          }
-
-          if (i.variationId) {
-            line.catalog_object_id = i.variationId
-          }
-          return line
-        }),
+        line_items: [...baseLineItems, ...addonLineItems],
         taxes: [
           {
             name: taxName,
             percentage: taxPercentage.toString(),
-            applied_money: { amount: taxAmount, currency: 'USD' },
             scope: 'ORDER',
           },
         ],
       },
-      idempotency_key: crypto.randomUUID(), // garante que pedidos duplicados não sejam criados
+      idempotency_key: crypto.randomUUID(),
     }
+
+    console.log('🧾 Line items enviados à Square:', [...baseLineItems, ...addonLineItems])
 
     const orderRes = await $fetch(`${baseUrl}/v2/orders`, {
       method: 'POST',
@@ -124,7 +163,9 @@ export default defineEventHandler(async (event) => {
     }
 
     // 6️⃣ Cria o pagamento real associado ao pedido criado
-    //    O valor vem do cálculo validado direto na Square (verifiedTotal)
+    //    O valor vem do cálculo validado direto na Square (verifiedTotal + addons)
+    const orderTotal = orderRes?.order?.total_money?.amount ?? totalWithTax
+
     const paymentRes = await $fetch(`${baseUrl}/v2/payments`, {
       method: 'POST',
       headers: {
@@ -136,7 +177,7 @@ export default defineEventHandler(async (event) => {
         source_id: sourceId,
         idempotency_key: crypto.randomUUID(),
         amount_money: {
-          amount: Math.round(totalWithTax), // já é em centavos (ex: 2600 = $26.00)
+          amount: Math.round(orderTotal),
           currency: 'USD',
         },
         order_id: orderId,        // 🔗 vincula o pagamento ao pedido
@@ -152,12 +193,23 @@ export default defineEventHandler(async (event) => {
     // gera número diário pro OrderNumber
     const { nextNumber, today } = await getDailyOrderNumber()
 
+    const enrichedItems = verifiedItems.map((i) => {
+      const addonNames = (items.find(x => x.id === i.id)?.addons || [])
+        .map(id => toppingMap.get(id)?.name || id)
+      return {
+        name: i.name,
+        price: i.price_cents,
+        quantity: i.quantity,
+        addons: addonNames.length ? JSON.stringify(addonNames) : null,
+      }
+    })
+
     // 7️⃣ Salva o pedido no banco SQLite via Prisma
     //    Inclui informações principais e os itens do pedido.
     const savedOrder = await prisma.order.create({
       data: {
         email: email || null,
-        totalAmount: Math.round(totalWithTax), // guarda o valor total em centavos
+        totalAmount: Math.round(orderTotal), // guarda o valor total em centavos
         currency: payment.amount_money.currency,
         squareId: payment.id,     // ID do pagamento Square
         squareOrder: orderId,     // ID do pedido Square
@@ -166,11 +218,7 @@ export default defineEventHandler(async (event) => {
         dailyNumber: nextNumber,
         dateKey: today,
         items: {
-          create: verifiedItems.map((i) => ({
-            name: i.name,
-            price: i.price_cents, // centavos
-            quantity: i.quantity,
-          })),
+          create: enrichedItems,
         },
       },
       include: { items: true }, // inclui os itens na resposta para uso no e-mail
@@ -178,19 +226,37 @@ export default defineEventHandler(async (event) => {
 
     // 8️⃣ Envia o e-mail de confirmação (com QR code + resumo do pedido)
     if (email) {
+      // 🔹 Calcula o preço total de cada item com os toppings incluídos
+      const emailItems = enrichedItems.map((i) => {
+        const addonList = i.addons ? JSON.parse(i.addons) : []
+
+        // Soma o valor de cada topping pelo nome
+        const addonsTotal = addonList.reduce((sum, name) => {
+          const entry = [...toppingMap.values()].find(t => t.name === name)
+          return sum + (entry?.price_cents || 0)
+        }, 0)
+
+        // Calcula preço total = item base + addons × quantidade
+        const itemTotal = (i.price + addonsTotal * i.quantity) / 100
+
+        return {
+          name: i.name,
+          quantity: i.quantity,
+          price: itemTotal.toFixed(2),
+          addons: addonList,
+        }
+      })
+
       await sendOrderConfirmationEmail({
         to: email,
-        orderId: payment.id, // usamos o ID do pagamento no link do QR
+        orderId: payment.id, // ID usado no link do QR
         orderNumber: nextNumber,
         pickupTime: '15 minutes',
         receiptUrl: payment.receipt_url || 'https://squareup.com/receipts',
-        items: verifiedItems.map((i) => ({
-          name: i.name,
-          quantity: i.quantity,
-          price: (i.price_cents / 100).toFixed(2), // converte centavos → dólares
-        })),
+        items: emailItems,
       })
     }
+
 
     // 9️⃣ Retorna resposta final para o frontend
     //    Inclui dados do pagamento, pedido salvo e se o e-mail foi enviado.

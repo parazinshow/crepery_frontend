@@ -68,7 +68,7 @@ onMounted(async () => {
       !isNaN(i.quantity)
   )
   cart.value = loaded
-
+  
   // 🔹 Configuração do ambiente e chaves públicas da Square
   const config = useRuntimeConfig()
   const isProd = process.env.NODE_ENV === 'production'
@@ -209,7 +209,11 @@ async function tokenizeAndPay(result) {
       body: {
         sourceId: result.token,
         email: email.value,
-        items: cart.value.map(i => ({ id: i.id, quantity: i.quantity })),
+        items: cart.value.map(i => ({ 
+          id: i.id, 
+          quantity: i.quantity, 
+          addons: i.addons || [] 
+        })),
       },
     })
 

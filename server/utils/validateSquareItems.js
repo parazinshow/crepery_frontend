@@ -52,6 +52,7 @@ export async function validateSquareItems(items) {
         name: squareItem.item_data.name,          // Nome do item (ex: “Nutella”)
         price_cents,                              // Valor em centavos
         quantity: item.quantity || 1,             // Quantidade (default = 1)
+        addons: item.addons || [],                   // Adicionais selecionados
       })
     }
 

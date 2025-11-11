@@ -30,4 +30,5 @@ model OrderItem {
   variationId   String?
   price         Float
   quantity      Int
+  addons        String? 
 }
