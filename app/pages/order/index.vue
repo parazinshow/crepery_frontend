@@ -5,14 +5,14 @@
   <client-only>
     <section class="background w-full min-h-[calc(100vh-100px)]">
       <div class="max-w-7xl mx-auto p-6">
-        <h1 class="text-4xl font-bold mb-6 text-center">MENU</h1>
+        <h1 class="page-title text-5xl lg:text-7xl text-center">Menu</h1>
 
         <!-- GRID PRINCIPAL: ESQUERDA MENU / DIREITA CARRINHO -->
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
           <!-- COLUNA ESQUERDA: MENU -->
           <div class="lg:col-span-3 lg:px-4 lg:py-2">
             <!-- Estado de carregamento -->
-            <div v-if="loading" class="text-center py-10">Loading menu...</div>
+            <div v-if="loading" class="page-body text-center py-10">Loading menu...</div>
 
             <!-- Menu items -->
             <div v-else class="divide-y">
@@ -26,7 +26,7 @@
                   alt=""
                   class="w-20 h-20 rounded-lg object-contain"
                 />
-                <div class="flex-1">
+                <div class="page-body flex-1">
                   <h3 class="text-2xl font-bold">{{ item.name }}</h3>
                   <p class="text-base">
                     {{ item.description || ' ' }}
@@ -57,7 +57,7 @@
           </div>
 
           <!-- DIREITA: CARRINHO -->
-          <div class="lg:col-span-2 lg:px-4 lg:py-2 flex flex-col">
+          <div class="page-body lg:col-span-2 lg:px-4 lg:py-2 flex flex-col">
             <h3 class="text-2xl font-bold mb-4 text-center">Your cart</h3>
 
             <p

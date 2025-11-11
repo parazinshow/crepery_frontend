@@ -4,25 +4,25 @@
 
 @layer components {
   .background {
-    @apply bg-brand-50;
+    @apply bg-primary-50;
   }
 	.hero-title {
-		@apply font-garamond font-semibold italic text-brand-50 text-6xl lg:text-8xl drop-shadow-lg
+		@apply font-garamond font-semibold italic text-primary-50 text-6xl lg:text-8xl drop-shadow-lg
 	}
 	.hero-subtitle {
-		@apply font-garamond text-brand-50 text-xl drop-shadow-md
+		@apply font-garamond text-primary-50 text-xl drop-shadow-md
 	}
   .page-title {
-    @apply text-brand-800 font-garamond font-bold italic;
+    @apply text-primary-800 font-garamond font-semibold italic;
   }
 	.page-body {
-    @apply text-brand-900 font-abhaya font-semibold text-lg;
+    @apply text-primary-900 font-abhaya font-semibold text-lg;
   }
   .modal {
     @apply bg-white rounded-lg shadow-lg;
   }
   .button {
-    @apply font-semibold rounded-lg;
+    @apply font-garamond font-semibold rounded-lg;
   }
   .default-button {
     @apply button bg-primary-600 text-white disabled:opacity-50;
@@ -43,17 +43,16 @@
     @apply tooltip-button hover:bg-gray-300;
   }
   .mobile-nav-item {
-    @apply py-2
-		px-3;
+    @apply py-2 px-3 rounded-lg
+    font-abhaya font-semibold text-xl
+		text-primary-700;
   }
   .desktop-nav-item {
-    @apply py-2
-		pr-4
-		pl-3 
-		text-primary-800 
+    @apply py-2 px-4 rounded-lg
+    font-abhaya font-semibold text-xl
+		text-primary-700 
 		hover:bg-primary-600 
-		hover:text-primary-100 
-		rounded-lg
+		hover:text-primary-50 
 		transition-colors duration-200 ease-in-out;
   }
 }

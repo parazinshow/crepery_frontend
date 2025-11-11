@@ -19,19 +19,6 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
-          950: '#451a03',
-        },
         // Colors Shana gave me as example
         // given: {
         //   'base-beige': '#fcefd3',
@@ -45,7 +32,7 @@ module.exports = {
         //   'text-1': '#3B2F2F',
         //   'text-2': '#4E2E1E',
         // },
-        brand: {
+        primary: {
           50: '#FFF3EF',
           100: '#EBDDD8',
           200: '#D8C7C1',

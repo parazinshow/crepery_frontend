@@ -1,6 +1,6 @@
 <template>
 	<header>
-		<nav class="relative z-30 bg-primary-100 px-2.5 sm:px-5 py-2.5 shadow-md">
+		<nav class="relative z-30 background px-2.5 sm:px-5 py-2.5 shadow-md">
 			<div class="flex items-center mx-auto max-w-screen-xl h-20">
 				<!-- Logo -->
 				<NuxtLink to="/" class="flex items-center">
@@ -18,9 +18,9 @@
 
 				<!-- MENU DESKTOP -->
 				<div class="hidden lg:flex flex-1 justify-center">
-					<ul class="flex items-center gap-8 font-medium">
+					<ul class="flex items-center gap-8">
 						<li v-for="item in menuItems" :key="item.name">
-							<NuxtLink :to="item.to" class="desktop-nav-item">
+							<NuxtLink :to="item.to" class="mobile-nav-item lg:desktop-nav-item">
 								{{ item.name }}</NuxtLink
 							>
 						</li>
@@ -31,7 +31,7 @@
 				<div class="flex items-center ml-auto">
 					<a
 						href="/order"
-						class="hidden lg:inline-flex text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5"
+						class="hidden lg:inline-flex default-button-desktop text-lg px-5 py-2.5"
 					>
 						ORDER NOW
 					</a>
@@ -56,13 +56,13 @@
 			<!-- MENU MOBILE -->
 			<div
 				id="mobile-menu-2"
-				class="hidden absolute inset-x-0 top-20 z-40 bg-primary-100 p-4 space-y-3 shadow-lg lg:hidden"
+				class="hidden absolute inset-x-0 top-20 z-40 background p-4 space-y-3 shadow-lg lg:hidden"
 			>
 				<ul class="flex flex-col items-center font-medium space-y-3">
 					<li>
 						<a
 							href="/order"
-							class="inline-flex justify-center text-white bg-primary-700 font-bold rounded-lg text-sm px-4 py-2"
+							class="inline-flex justify-center default-button text-lg px-4 py-2"
 						>
 							ORDER NOW
 						</a>
