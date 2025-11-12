@@ -33,7 +33,7 @@
 				<h1
 					class="hero-title max-w-4xl leading-tight drop-shadow-lg mt-16"
 				>
-					Your french window down the slopes
+					YOUR FRENCH WINDOW DOWN THE SLOPES
 				</h1>
 				<p class="hero-subtitle mt-4 max-w-2xl drop-shadow">
 					Freshly made crepes and coffee, right where the mountains meet France.

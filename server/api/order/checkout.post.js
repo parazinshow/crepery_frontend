@@ -145,8 +145,6 @@ export default defineEventHandler(async (event) => {
       idempotency_key: crypto.randomUUID(),
     }
 
-    console.log('🧾 Line items enviados à Square:', [...baseLineItems, ...addonLineItems])
-
     const orderRes = await $fetch(`${baseUrl}/v2/orders`, {
       method: 'POST',
       headers: {
