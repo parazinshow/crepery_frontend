@@ -86,18 +86,41 @@ export default defineEventHandler(async (event) => {
 
     for (const item of items) {
       const qty = Number(item.quantity || 1)
-      for (const addonId of item.addons || []) {
-        const addon = toppingMap.get(addonId)
-        if (!addon) continue
-        addonsTotalCents += addon.price_cents * qty
+
+      for (const addon of item.addons || []) {
+        let addonData = null
+
+        if (typeof addon === 'object') {
+          addonData = {
+            id: addon.id,
+            name: addon.label || addon.name || 'Addon',
+            price_cents: addon.price_cents ?? toppingMap.get(addon.id)?.price_cents ?? 0,
+          }
+        } else {
+          const cached = toppingMap.get(addon)
+          addonData = {
+            id: addon,
+            name: cached?.name || 'Addon',
+            price_cents: cached?.price_cents || 0,
+          }
+        }
+
+        if (!addonData) continue
+
+        // soma total
+        if (addonData.price_cents) {
+          addonsTotalCents += addonData.price_cents * qty
+        }
+
+        // adiciona como line_item separado no Square
         addonLineItems.push({
-          name: `+ ${addon.name}`,
+          name: `+ ${addonData.name}`,
           quantity: String(qty),
           base_price_money: {
-            amount: addon.price_cents,
+            amount: addonData.price_cents,
             currency: 'USD',
           },
-          catalog_object_id: addon.variationId || undefined,
+          catalog_object_id: toppingMap.get(addonData.id)?.variationId || undefined,
         })
       }
     }
@@ -228,23 +251,30 @@ export default defineEventHandler(async (event) => {
       const emailItems = enrichedItems.map((i) => {
         const addonList = i.addons ? JSON.parse(i.addons) : []
 
-        // Soma o valor de cada topping pelo nome
-        const addonsTotal = addonList.reduce((sum, name) => {
-          const entry = [...toppingMap.values()].find(t => t.name === name)
-          return sum + (entry?.price_cents || 0)
+        // Soma o valor de cada topping diretamente pelo map
+        const addonsTotalCents = addonList.reduce((sum, addon) => {
+          // Caso o addon venha como string, tenta achar no toppingMap
+          if (typeof addon === 'string') {
+            const found = [...toppingMap.values()].find(t => t.name === addon)
+            return sum + (found?.price_cents || 0)
+          }
+          // Caso venha como objeto (novo formato)
+          return sum + (addon.price_cents || 0)
         }, 0)
 
-        // Calcula preço total = item base + addons × quantidade
-        const itemTotal = (i.price + addonsTotal * i.quantity) / 100
+        // 💰 Agora calcula total em CENTAVOS corretamente
+        const baseCents = Number(i.price || 0)
+        const itemTotalCents = (baseCents + addonsTotalCents) * (i.quantity || 1)
 
         return {
           name: i.name,
           quantity: i.quantity,
-          price: itemTotal.toFixed(2),
+          price_cents: itemTotalCents, // ✅ em centavos, padrão interno
           addons: addonList,
         }
       })
 
+      // 🔹 Envia o e-mail com valores 100 % consistentes
       await sendOrderConfirmationEmail({
         to: email,
         orderId: payment.id, // ID usado no link do QR
@@ -254,7 +284,6 @@ export default defineEventHandler(async (event) => {
         items: emailItems,
       })
     }
-
 
     // 9️⃣ Retorna resposta final para o frontend
     //    Inclui dados do pagamento, pedido salvo e se o e-mail foi enviado.

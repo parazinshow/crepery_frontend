@@ -35,41 +35,56 @@
       <!-- Itens do pedido (se houver) -->
       <div v-if="displayOrder.items && displayOrder.items.length">
         <h3 class="text-lg font-semibold border-b pb-2 mb-2">🧾 Order Summary</h3>
-          <ul>
-            <li
-              v-for="it in displayOrder.items"
-              :key="it.id || it.name"
-              class="py-2 border-b border-gray-100 last:border-none"
-            >
-              <div class="flex justify-between">
-                <p>{{ it.quantity }} × {{ it.name }}</p>
-                <p class="font-medium">
-                  ${{
-                    (
-                      (
-                        (it.price_cents ?? it.price ?? 0) +
-                        (parseAddons(it.addons).reduce((sum, name) => sum + (toppingMap.get(name) || 0), 0))
-                      ) / 100 * it.quantity
-                    ).toFixed(2)
+        <ul>
+          <li
+            v-for="it in displayOrder.items"
+            :key="it.id || it.name"
+            class="flex justify-between py-1 border-b border-gray-100 last:border-none"
+          >
+            <div>
+              <p>{{ it.quantity }} × {{ it.name }}</p>
+
+              <!-- Addons formatados -->
+              <div v-if="it.addons" class="ml-4 text-gray-600 text-sm">
+                <p
+                  v-for="addon in parseAddons(it.addons)"
+                  :key="addon.id || addon"
+                >
+                  + {{
+                    typeof addon === 'object'
+                      ? `${addon.label || addon.name || addon.id} ${
+                          addon.price_cents
+                            ? `($${(addon.price_cents / 100).toFixed(2)})`
+                            : ''
+                        }`
+                      : addon
                   }}
                 </p>
               </div>
+            </div>
 
-              <!-- 🍓 Mostra toppings se existirem -->
-              <ul
-                v-if="it.addons"
-                class="ml-4 mt-1 text-sm text-gray-600 list-disc"
-              >
-                <li
-                  v-for="topping in parseAddons(it.addons)"
-                  :key="topping"
-                >
-                  + {{ topping }}
-                </li>
-              </ul>
-            </li>
-          </ul>
-
+            <!-- 💰 Preço com soma dos addons -->
+            <p class="font-medium">
+              ${{
+                (
+                  (
+                    (it.price_cents ?? it.price ?? 0) +
+                    parseAddons(it.addons).reduce(
+                      (sum, a) =>
+                        sum +
+                        (typeof a === 'object'
+                          ? a.price_cents || 0
+                          : 0),
+                      0
+                    )
+                  ) *
+                  it.quantity /
+                  100
+                ).toFixed(2)
+              }}
+            </p>
+          </li>
+        </ul>
       </div>
 
       <!-- Taxes paid -->
@@ -247,15 +262,18 @@ const placedOn = computed(() => {
   }
 })
 
+/* HELPERS --------------------------------------------------- */
 function parseAddons(addons) {
   try {
-    if (Array.isArray(addons)) return addons        // já é array (caso venha assim)
-    if (typeof addons === 'string') return JSON.parse(addons) // tenta converter
+    if (!addons) return []
+    if (Array.isArray(addons)) return addons
+    return JSON.parse(addons)
   } catch (e) {
     console.warn('Erro ao parsear addons:', e)
+    return []
   }
-  return [] // fallback
 }
+
 
 
 /**

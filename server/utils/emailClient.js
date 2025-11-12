@@ -35,36 +35,60 @@ export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pick
   // 🧁 Monta a lista de itens do pedido
   // Cria uma <ul> com cada item em <li>, mostrando nome, quantidade e preço formatado
   // Se não houver itens, mostra um texto “No items found.”
-const itemsHtml = items.length
-  ? `<ul style="padding-left:15px;margin-top:10px;">${items
-      .map((i) => {
-        // tenta converter addons se for string JSON
-        let addonsList = []
-        try {
-          if (Array.isArray(i.addons)) addonsList = i.addons
-          else if (typeof i.addons === 'string' && i.addons.trim()) {
-            addonsList = JSON.parse(i.addons)
-          }
-        } catch (e) {
-          console.warn('Erro ao parsear addons no email:', e)
-        }
+  const itemsHtml = items.length
+    ? (() => {
+        let totalCents = 0
 
-        // gera HTML dos addons, se houver
-        const addonsHtml =
-          addonsList.length > 0
-            ? `<div style="margin:2px 0 0 0; color:#555; font-size:13px;">
-                ${addonsList.map((a) => `<div style="margin-left:18px;">+ ${a}</div>`).join('')}
-              </div>`
-            : ''
+        const listHtml = items
+          .map((i) => {
+            const addons = Array.isArray(i.addons)
+              ? i.addons
+              : (() => {
+                  try { return JSON.parse(i.addons || '[]') } catch { return [] }
+                })()
 
-        // item principal com addons abaixo
-        return `<li style="margin-bottom:8px;">
-                  ${i.quantity} × ${i.name} — <b>$${Number(i.price).toFixed(2)}</b>
-                  ${addonsHtml}
-                </li>`
-      })
-      .join('')}</ul>`
-  : `<p>No items found.</p>`
+            // ✅ Sempre tratar como centavos (mantendo consistência com o backend e DB)
+            const basePriceCents = Number(i.price_cents || i.price || 0)
+
+            // Soma o preço dos toppings (também em centavos)
+            const addonsTotalCents = addons.reduce((sum, a) => {
+              const addonPriceCents = Number(a?.price_cents || a?.price || 0)
+              return sum + addonPriceCents
+            }, 0)
+
+            // Valor total do item (base + addons) × quantidade
+            const itemTotalCents =
+              (basePriceCents + addonsTotalCents) * (Number(i.quantity) || 1)
+
+            totalCents += itemTotalCents
+
+            // Gera HTML dos toppings
+            const addonsHtml = addons.length
+              ? addons
+                  .map((a) => {
+                    const label = a.label || a.name || a.id
+                    const cents = Number(a.price_cents || a.price || 0)
+                    return `${label} ($${(cents / 100).toFixed(2)})`
+                  })
+                  .join('<br>')
+              : ''
+
+            // Renderiza a linha do item
+            return `<li style="margin-bottom:8px;">
+              ${i.quantity} × ${i.name} — <b>$${(itemTotalCents / 100).toFixed(2)}</b>
+              ${addonsHtml ? `<br><span style="color:#555;">${addonsHtml}</span>` : ''}
+            </li>`
+          })
+          .join('')
+
+        // Total geral do pedido
+        const totalHtml = `<p style="margin-top:10px;font-weight:bold;">Total: $${(totalCents / 100).toFixed(2)}</p>`
+
+        return `<ul style="padding-left:15px;margin-top:10px;">${listHtml}</ul>${totalHtml}`
+      })()
+    : `<p>No items found.</p>`
+
+
 
 
   // 🧠 Monta o corpo HTML completo do e-mail

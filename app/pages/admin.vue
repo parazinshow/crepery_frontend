@@ -62,6 +62,18 @@ async function markDone(id) {
   }
 }
 
+/* ✅ Parseia os addons de um item */
+function parseAddons(addons) {
+  try {
+    if (!addons) return []
+    if (Array.isArray(addons)) return addons
+    return JSON.parse(addons)
+  } catch (e) {
+    console.warn('Erro ao parsear addons:', e)
+    return []
+  }
+}
+
 /* ✅ Atualiza cache do menu */
 async function refreshMenu() {
   try {
@@ -179,23 +191,38 @@ function logout() {
                 class="flex flex-col border-b py-2"
               >
                 <!-- Linha principal com nome e preço -->
-                <div class="flex justify-between items-center">
-                  <span>{{ item.quantity }}x {{ item.name }}</span>
-                  <span>${{ ((item.price || 0) / 100).toFixed(2) }}</span>
-                </div>
+<div class="flex justify-between items-center">
+  <span>{{ item.quantity }}x {{ item.name }}</span>
+  <span>
+    ${{
+      (
+        (
+          (item.price || 0) +
+          parseAddons(item.addons).reduce(
+            (sum, a) =>
+              sum +
+              (typeof a === 'object' ? a.price_cents || 0 : 0),
+            0
+          )
+        ) /
+        100
+      ).toFixed(2)
+    }}
+  </span>
+</div>
 
                 <!-- Lista de toppings, se existirem -->
-                <ul
-                  v-if="item.addons"
-                  class="ml-4 text-sm text-gray-500 list-disc mt-1 space-y-0.5"
+                <p
+                  v-for="addon in parseAddons(item.addons)"
+                  :key="addon.id || addon"
+                  class="text-sm ml-4 text-gray-700"
                 >
-                  <li
-                    v-for="topping in JSON.parse(item.addons)"
-                    :key="topping"
-                  >
-                    {{ topping }}
-                  </li>
-                </ul>
+                  + {{
+                    typeof addon === 'object'
+                      ? `${addon.label || addon.name || addon.id} ${addon.price_cents ? `($${(addon.price_cents / 100).toFixed(2)})` : ''}`
+                      : addon
+                  }}
+                </p>
               </li>
             </ul>
 

@@ -200,7 +200,7 @@
         v-if="showCustomizationModal"
         class="fixed bg-black/50 inset-0 flex items-center justify-center z-50"
       >
-        <div class="modal w-3/4 max-w-md lg:w-full mx-auto my-auto p-6">
+        <div class="modal w-3/4 max-w-md lg:w-full mx-auto my-auto p-6 max-h-[80vh] overflow-y-auto rounded-xl bg-white">
           <!-- Title and subtitle -->
           <h3 class="text-xl font-semibold mb-2 text-center">Customize</h3>
           <p class="text-sm mb-4 text-center">
