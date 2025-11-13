@@ -2,17 +2,12 @@
 import nodemailer from 'nodemailer' // 📧 Biblioteca usada para enviar e-mails
 import QRCode from 'qrcode'         // 🔳 Biblioteca para gerar QR Codes em base64
 
+// ========================================================
+// ✉️ E-mail: Order Confirmation
+// --------------------------------------------------------
 // Função principal que envia o e-mail de confirmação de pedido
-export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pickupTime, receiptUrl, items = [], taxAmount
-  ,taxPercentage,subtotal,total }) {
-  // 🚨 Garante que o e-mail de destino foi informado
-  if (!to) throw new Error('Missing destination email address')
+// ========================================================
 
-  // 🔗 Cria o link direto do pedido no site (será incluído no QR e no botão do e-mail)
-  const orderUrl = `http://localhost:3000/order/${orderId}`
-
-  // 🧾 Gera o QR Code em formato base64 que aponta para o link do pedido
-  const qrCode = await QRCode.toDataURL(orderUrl)
 
   // ✉️ Configura o transporte SMTP para envio de e-mail
   // Aqui usa variáveis de ambiente (EMAIL_USER, EMAIL_PASS, etc.)
@@ -26,6 +21,17 @@ export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pick
       pass: process.env.EMAIL_PASS,
     },
   })
+
+export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pickupTime, receiptUrl, items = [], taxAmount
+  ,taxPercentage,subtotal,total }) {
+  // 🚨 Garante que o e-mail de destino foi informado
+  if (!to) throw new Error('Missing destination email address')
+
+  // 🔗 Cria o link direto do pedido no site (será incluído no QR e no botão do e-mail)
+  const orderUrl = `http://localhost:3000/order/${orderId}`
+
+  // 🧾 Gera o QR Code em formato base64 que aponta para o link do pedido
+  const qrCode = await QRCode.toDataURL(orderUrl)
 
   // 💳 Monta a seção de recibo Square, se disponível
   // Se o pedido estiver no sandbox, mostra aviso em vez do link
@@ -172,5 +178,68 @@ const itemsHtml = items.length
         cid: 'qrcodeimg', // usado no HTML do e-mail para exibir a imagem inline
       },
     ],
+  })
+}
+
+// ========================================================
+// ✉️ E-mail: Order Ready for Pickup
+// --------------------------------------------------------
+// Enviado quando o admin marca o pedido como DONE
+// ========================================================
+
+export async function sendPickupReadyEmail({ to, orderNumber, items }) {
+  // 🧾 Lista simples dos itens no email
+const itemsList = items
+  .map(i => {
+    const addons = i.addons ? JSON.parse(i.addons) : []
+
+    // 👉 Correção: extrair label, name ou id
+    const addonLines = addons.length
+      ? addons
+          .map(a => {
+            const label =
+              typeof a === "string"
+                ? a
+                : a.label || a.name || a.id || "Addon"
+
+            return `+ ${label}`
+          })
+          .join('<br>')
+      : ''
+
+    return `
+      <li style="margin-bottom:6px;">
+        ${i.quantity} × ${i.name}
+        ${addonLines ? `<br><span style="color:#555;">${addonLines}</span>` : ''}
+      </li>
+    `
+  })
+  .join('')
+
+  // ✉️ Título do e-mail
+  const subject = `🥞 The Crêpe Girl — Your Order #${orderNumber} is Ready!`
+
+  // ✉️ Corpo do e-mail
+  const html = `
+    <h2>🥞 The Crêpe Girl</h2>
+    <p>Hi there!</p>
+
+    <p>Your order <b>#${orderNumber}</b> is now ready for pickup.</p>
+
+    <p>🧾 <b>Order Summary</b></p>
+    <ul style="padding-left:15px;margin-top:5px;">
+      ${itemsList}
+    </ul>
+
+    <p>You may come to the pickup window now.  
+    Thank you again for choosing The Crêpe Girl — enjoy your treat! 💛</p>
+  `
+
+  // 🚀 Envia o e-mail usando o transporter
+  await transporter.sendMail({
+    from: `"The Crêpe Girl" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html
   })
 }
