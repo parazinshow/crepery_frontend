@@ -1,8 +1,18 @@
+<!-- =========================================================================
+app.vue
+----------------------------------------------------------------------------
+Este arquivo é obrigatório para que layouts funcionem no Nuxt.
+
+Sem isso, você recebe o warning:
+  "[nuxt] Your project has layouts but <NuxtLayout /> was not used"
+
+Aqui indicamos que TODAS as páginas devem usar o layout padrão.
+========================================================================= -->
+
 <template>
-  <div>
-    <NuxtRouteAnnouncer />
+  <NuxtLayout>
     <NuxtPage />
-  </div>
+  </NuxtLayout>
 </template>
 
 <script setup>
