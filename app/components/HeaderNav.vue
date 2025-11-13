@@ -81,6 +81,7 @@
 
 <script setup>
 	const menuItems = [
+		{ name: "MENU", to: "/menu" },
 		{ name: "CAKES", to: "/cakes" },
 		{ name: "RETAIL", to: "/retail" },
 		{ name: "OUR STORY", to: "/about" },
