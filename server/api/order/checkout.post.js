@@ -264,12 +264,11 @@ export default defineEventHandler(async (event) => {
 
         // 💰 Agora calcula total em CENTAVOS corretamente
         const baseCents = Number(i.price || 0)
-        const itemTotalCents = (baseCents + addonsTotalCents) * (i.quantity || 1)
 
         return {
           name: i.name,
           quantity: i.quantity,
-          price_cents: itemTotalCents, // ✅ em centavos, padrão interno
+          price_cents: baseCents, // ✅ em centavos, padrão interno
           addons: addonList,
         }
       })
@@ -282,6 +281,10 @@ export default defineEventHandler(async (event) => {
         pickupTime: '15 minutes',
         receiptUrl: payment.receipt_url || 'https://squareup.com/receipts',
         items: emailItems,
+        taxAmount,         // 💰 tax em centavos
+        taxPercentage,     // ex: 9.4
+        subtotal: subtotalWithAddons, // em centavos
+        total: totalWithTax // em centavos
       })
     }
 

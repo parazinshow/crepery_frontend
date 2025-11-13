@@ -50,7 +50,7 @@
                   v-for="addon in parseAddons(it.addons)"
                   :key="addon.id || addon"
                 >
-                  + {{
+                  {{
                     typeof addon === 'object'
                       ? `${addon.label || addon.name || addon.id} ${
                           addon.price_cents

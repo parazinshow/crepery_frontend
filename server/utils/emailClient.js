@@ -3,7 +3,8 @@ import nodemailer from 'nodemailer' // 📧 Biblioteca usada para enviar e-mails
 import QRCode from 'qrcode'         // 🔳 Biblioteca para gerar QR Codes em base64
 
 // Função principal que envia o e-mail de confirmação de pedido
-export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pickupTime, receiptUrl, items = [] }) {
+export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pickupTime, receiptUrl, items = [], taxAmount
+  ,taxPercentage,subtotal,total }) {
   // 🚨 Garante que o e-mail de destino foi informado
   if (!to) throw new Error('Missing destination email address')
 
@@ -35,60 +36,93 @@ export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pick
   // 🧁 Monta a lista de itens do pedido
   // Cria uma <ul> com cada item em <li>, mostrando nome, quantidade e preço formatado
   // Se não houver itens, mostra um texto “No items found.”
-  const itemsHtml = items.length
-    ? (() => {
-        let totalCents = 0
+const itemsHtml = items.length
+  ? (() => {
+      let totalCents = 0
 
-        const listHtml = items
-          .map((i) => {
-            const addons = Array.isArray(i.addons)
-              ? i.addons
-              : (() => {
-                  try { return JSON.parse(i.addons || '[]') } catch { return [] }
-                })()
+      const listHtml = items
+        .map((i) => {
+          const addons = Array.isArray(i.addons)
+            ? i.addons
+            : (() => {
+                try { return JSON.parse(i.addons || '[]') } catch { return [] }
+              })()
 
-            // ✅ Sempre tratar como centavos (mantendo consistência com o backend e DB)
-            const basePriceCents = Number(i.price_cents || i.price || 0)
+          // ✅ Sempre tratar como centavos (mantendo consistência com o backend e DB)
+          const basePriceCents = Number(i.price_cents || i.price || 0)
 
-            // Soma o preço dos toppings (também em centavos)
-            const addonsTotalCents = addons.reduce((sum, a) => {
-              const addonPriceCents = Number(a?.price_cents || a?.price || 0)
-              return sum + addonPriceCents
-            }, 0)
+          // Soma o preço dos toppings (também em centavos)
+          const addonsTotalCents = addons.reduce((sum, a) => {
+            const addonPriceCents = Number(a?.price_cents || a?.price || 0)
+            return sum + addonPriceCents
+          }, 0)
 
-            // Valor total do item (base + addons) × quantidade
-            const itemTotalCents =
-              (basePriceCents + addonsTotalCents) * (Number(i.quantity) || 1)
+          // Valor total do item (base + addons) × quantidade
+          const itemTotalCents =
+            (basePriceCents + addonsTotalCents) * (Number(i.quantity) || 1)
 
-            totalCents += itemTotalCents
+          totalCents += itemTotalCents
 
-            // Gera HTML dos toppings
-            const addonsHtml = addons.length
-              ? addons
-                  .map((a) => {
-                    const label = a.label || a.name || a.id
-                    const cents = Number(a.price_cents || a.price || 0)
-                    return `${label} ($${(cents / 100).toFixed(2)})`
-                  })
-                  .join('<br>')
-              : ''
+          // Gera HTML dos toppings
+          const addonsHtml = addons.length
+            ? addons
+                .map((a) => {
+                  const label = a.label || a.name || a.id
+                  const cents = Number(a.price_cents || a.price || 0)
+                  return `${label} ($${(cents / 100).toFixed(2)})`
+                })
+                .join('<br>')
+            : ''
 
-            // Renderiza a linha do item
-            return `<li style="margin-bottom:8px;">
-              ${i.quantity} × ${i.name} — <b>$${(itemTotalCents / 100).toFixed(2)}</b>
-              ${addonsHtml ? `<br><span style="color:#555;">${addonsHtml}</span>` : ''}
-            </li>`
-          })
-          .join('')
+          // Renderiza a linha do item
+          return `<li style="margin-bottom:8px;">
+            ${i.quantity} × ${i.name} — <b>$${(itemTotalCents / 100).toFixed(2)}</b>
+            ${addonsHtml ? `<br><span style="color:#555;">${addonsHtml}</span>` : ''}
+          </li>`
+        })
+        .join('')
 
-        // Total geral do pedido
-        const totalHtml = `<p style="margin-top:10px;font-weight:bold;">Total: $${(totalCents / 100).toFixed(2)}</p>`
+      // =====================================================================
+      // 🔵 Cálculo dos valores monetários mostrados abaixo
+      // ---------------------------------------------------------------------
+      // Aqui estamos formatando:
+      // - Subtotal (base + addons)
+      // - Tax (em centavos → dólar)
+      // - Total final (subtotal + tax)
+      //
+      // Estes valores já devem ser recebidos na função de email como:
+      //   subtotal (centavos)
+      //   taxAmount (centavos)
+      //   taxPercentage (ex: 9.4)
+      //   total (centavos)
+      // =====================================================================
 
-        return `<ul style="padding-left:15px;margin-top:10px;">${listHtml}</ul>${totalHtml}`
-      })()
-    : `<p>No items found.</p>`
+      const subtotalDollars = (subtotal / 100).toFixed(2)
+      const taxDollars = (taxAmount / 100).toFixed(2)
+      const totalDollars = (total / 100).toFixed(2)
 
+      // ===============================================
+      // 🧾 Seção de resumo (subtotal + tax + total final)
+      // ===============================================
+      const totalsHtml = `
+        <p style="margin-top:14px;font-size:15px;">
+          Subtotal: <b>$${subtotalDollars}</b><br>
+          Tax (${taxPercentage}%): <b>$${taxDollars}</b><br>
+          Total: <b>$${totalDollars}</b>
+        </p>
+      `
 
+      // ===============================================
+      // 🔄 Retorno final da lista de itens + resumo
+      // ===============================================
+      return `
+        <ul style="padding-left:15px;margin-top:10px;">
+          ${listHtml}
+        </ul>
+        ${totalsHtml}
+      `
+    })()
+  : `<p>No items found.</p>`
 
 
   // 🧠 Monta o corpo HTML completo do e-mail

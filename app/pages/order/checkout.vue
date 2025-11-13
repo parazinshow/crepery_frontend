@@ -266,7 +266,7 @@
         @click="goBack"
         class="text-sm text-blue-600 hover:underline font-medium"
       >
-        ← Voltar ao Menu
+        ← Back to Menu
       </button>
     </div>
 
@@ -325,7 +325,7 @@
           @click="clearCart"
           class="text-sm text-red-600 hover:text-red-800 font-medium underline"
         >
-          🧹 Limpar carrinho
+          🧹 Empty Cart
         </button>
       </div>
     </div>
