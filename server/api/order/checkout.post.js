@@ -210,7 +210,7 @@ export default defineEventHandler(async (event) => {
 
         // 💵 Valor final (subtotal + tax + tip)
         amount_money: {
-          amount: orderTotal, //e valor com tips
+          amount: orderTotal, // ❗ NÃO incluir tip aqui — Square recusa se somar
           currency: 'USD',
         },
         // 💰 Tip separado para a Square (opcional mas recomendado)
@@ -224,8 +224,27 @@ export default defineEventHandler(async (event) => {
     })
 
     const payment = paymentRes?.payment
+    // Se o pagamento falhou ou foi negado
     if (!payment || payment.status !== 'COMPLETED') {
-      return { success: false, message: 'Pagamento não concluído', payment }
+      //  Cancela a ordem criada anteriormente
+      try {
+        await $fetch(`${baseUrl}/v2/orders/${orderId}/cancel`, {
+          method: 'POST',
+          headers: {
+            'Square-Version': SQUARE_VERSION,
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
+        })
+      } catch (cancelErr) {
+        console.error('⚠️ Falha ao cancelar order não paga:', cancelErr)
+      }
+
+      return {
+        success: false,
+        message: 'Pagamento não aprovado.',
+        payment,
+      }
     }
 
     // gera número diário pro OrderNumber
