@@ -298,8 +298,10 @@ const taxPaid = computed(() => {
 
   const taxRate = savedTax / 100
 
+  let amountWithoutTip = order.totalCents - (order.tipAmount || 0)
+
   // calcula quanto do total corresponde à tax
-  const taxAmount = order.totalCents - (order.totalCents / (1 + taxRate))
+  const taxAmount = amountWithoutTip - (amountWithoutTip / (1 + taxRate))
 
   // arredonda para centavos e garante que nunca seja negativo
   return Math.round(Math.max(taxAmount, 0))
