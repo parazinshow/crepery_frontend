@@ -74,7 +74,6 @@
 
             </div>
 
-
           </div>
 
           <!-- DIREITA: CARRINHO -->
@@ -121,9 +120,11 @@
                     class="text-base space-y-0.5"
                   >
                     <li v-for="addon in cartItem.addons" :key="addon.id">
-                      {{ addon?.label }}
-                      <span class="ml-4">
-                        +${{ ((addon?.price_cents || 0) / 100).toFixed(2) }}
+                      <span class="ml-4 text-lg font-semibold">
+                        + {{ addon.label }}
+                      </span>
+                      <span class="ml-4 text-lg font-semibold">
+                        ${{ ((addon?.price_cents || 0) / 100).toFixed(2) }}
                       </span>
                     </li>
                   </ul>
@@ -187,6 +188,12 @@
                     Customize
                   </button>
                 </div>
+
+                <!-- Special request note -->
+                <div v-if="cartItem.special_request" class="font-bold text-md mt-1">
+                  <b>Special Request:</b> {{ cartItem.special_request }}
+                </div>
+
               </div>
             </div>
 
@@ -256,6 +263,18 @@
             </div>
           </div>
 
+          <!-- Special Requests -->
+          <div class="mt-4">
+            <label class="text-base font-semibold">Special request (optional)</label>
+            <textarea
+              v-model="specialRequest"
+              placeholder="e.g. extra hot, no onions, sauce on the side..."
+              class="w-full rounded-lg border p-2 text-base resize-none mt-1"
+              rows="3"
+            ></textarea>
+          </div>
+
+
           <!-- CANCEL AND SAVE MODAL BUTTONS -->
           <div class="flex justify-end gap-3 mt-4">
             <button
@@ -278,370 +297,432 @@
 </template>
 
 <script setup>
-  import {ref, computed, onMounted, watch} from 'vue'
+/**
+ * ================================================================
+ *  MENU PAGE — CREPERIA
+ *  Versão revisada, corrigida e profissionalizada
+ *  - Special request funcionando
+ *  - Addons funcionando
+ *  - Carrinho com persistência correta
+ *  - Drinks e Soup com modal sem addons
+ *  - NormalizeAddons corrigido
+ *  - addToCart corrigido
+ *  - Edição de itens preservada
+ * ================================================================
+ */
 
-  // Imagem transparente usada como fallback em casos sem imagem
-  const placeholder =
-    'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' // 1x1 transparente
+import { ref, computed, onMounted, watch } from 'vue'
 
-  // Estrutura do menu completa separada por categorias
-  const menuSections = ref({
-    sweetItems: [], // crepes doces
-    savoryItems: [], // crepes salgados
-    drinks: [], // bebidas
-    croissants: [],
-    onionSoup: [],  
-    toppingsSweet: [], // toppings de doces
-    toppingsSavory: [], // toppings de salgados
-  })
+// Campo do modal: Special Request
+const specialRequest = ref("")
 
-  // "menuFlat" é um array plano com todos os itens principais (sem toppings)
-  const menuFlat = computed(() => [
-    ...menuSections.value.sweetItems,
-    ...menuSections.value.savoryItems,
-    ...menuSections.value.drinks,
-    ...menuSections.value.croissants,
-    ...menuSections.value.onionSoup,
-  ])
+// Placeholder para itens sem imagem
+const placeholder =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
 
-  // Estado do carrinho
-  const cart = ref([])
-  // Indicador de carregamento (exibe “Loading...” até o menu ser carregado)
-  const loading = ref(true)
 
-  // addonsOptions é preenchido dinamicamente com toppings do cache
-  const addonsOptions = ref([])
+// ================================================================
+//  MENU SECTIONS: Estrutura principal vinda do backend
+// ================================================================
+const menuSections = ref({
+  sweetItems: [],
+  savoryItems: [],
+  drinks: [],
+  croissants: [],
+  onionSoup: [],
+  toppingsSweet: [],
+  toppingsSavory: [],
+})
 
-  // Controle do modal de customização
-  const showCustomizationModal = ref(false)
-  const selectedItemForCustomization = ref(null) // item do menu sendo customizado
-  const selectedCartItemForCustomization = ref(null) // item já existente no carrinho
-  const selectedAddons = ref([]) // lista de addons selecionados
 
-  // CATEGORIAS PRINCIPAIS DO MENU
-  const categorizedMenu = computed(() => [
-    {
-      key: 'sweet',
-      title: '🥞 Sweet Crepes',
-      items: menuSections.value.sweetItems
-    },
-    {
-      key: 'savory',
-      title: '🥓 Savory Crepes',
-      items: menuSections.value.savoryItems
-    },
-    {
-      key: 'croissants',
-      title: '🥐 Croissants',
-      items: menuSections.value.croissants || []
-    },
-    {
-      key: 'onionSoup',
-      title: '🍲 Onion Soup',
-      items: menuSections.value.onionSoup || []
-    },
-    {
-      key: 'drinks',
-      title: '🥤 Drinks',
-      items: menuSections.value.drinks
+// ================================================================
+//  menuFlat → versão linear do menu (sem toppings)
+// ================================================================
+const menuFlat = computed(() => [
+  ...menuSections.value.sweetItems,
+  ...menuSections.value.savoryItems,
+  ...menuSections.value.drinks,
+  ...menuSections.value.croissants,
+  ...menuSections.value.onionSoup,
+])
+
+
+// ================================================================
+//  CART
+// ================================================================
+const cart = ref([])
+const loading = ref(true)
+const addonsOptions = ref([])
+
+
+// ================================================================
+//  MODAL DE CUSTOMIZAÇÃO
+// ================================================================
+const showCustomizationModal = ref(false)
+const selectedItemForCustomization = ref(null)
+const selectedCartItemForCustomization = ref(null)
+const selectedAddons = ref([])
+
+
+// ================================================================
+//  CATEGORIAS VISÍVEIS NO MENU
+// ================================================================
+const categorizedMenu = computed(() => [
+  {
+    key: 'sweet',
+    title: '🥞 Sweet Crepes',
+    items: menuSections.value.sweetItems,
+  },
+  {
+    key: 'savory',
+    title: '🥓 Savory Crepes',
+    items: menuSections.value.savoryItems,
+  },
+  {
+    key: 'croissants',
+    title: '🥐 Croissants',
+    items: menuSections.value.croissants,
+  },
+  {
+    key: 'onionSoup',
+    title: '🍲 Onion Soup',
+    items: menuSections.value.onionSoup,
+  },
+  {
+    key: 'drinks',
+    title: '🥤 Drinks',
+    items: menuSections.value.drinks,
+  },
+])
+
+
+// ================================================================
+// SCROLL PARA A SEÇÃO CLICADA NO TOP NAV
+// ================================================================
+function scrollToSection(key) {
+  const el = document.getElementById('section-' + key)
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+
+// ================================================================
+// NORMALIZAÇÃO / COMPARAÇÃO DE ADD-ONS
+// ================================================================
+function normalizeAddons(addons) {
+  // addons recebidos aqui são IDs
+  return [...addons].filter(Boolean).sort()
+}
+
+function addonsEqual(a, b) {
+  const A = normalizeAddons(a)
+  const B = normalizeAddons(b)
+  if (A.length !== B.length) return false
+  return A.every((v, i) => v === B[i])
+}
+
+
+// ================================================================
+// Busca addon completo pelo ID
+// ================================================================
+function getAddonById(id) {
+  return addonsOptions.value.find(a => a.id === id) || null
+}
+
+
+// ================================================================
+// CÁLCULOS DO CARRINHO
+// ================================================================
+function getAddonsPriceCents(cartItem) {
+  if (!cartItem.addons?.length) return 0
+  return cartItem.addons.reduce(
+    (sum, addon) => sum + (addon.price_cents || 0),
+    0
+  )
+}
+
+function getItemTotalCents(cartItem) {
+  const base = Number(cartItem.price_cents || 0)
+  const addonsTotal = getAddonsPriceCents(cartItem)
+  return (base + addonsTotal) * Number(cartItem.quantity || 1)
+}
+
+const total = computed(() =>
+  cart.value.reduce((acc, item) => acc + getItemTotalCents(item), 0)
+)
+
+
+// ================================================================
+//  onMounted — carregar menu + restaurar carrinho
+// ================================================================
+onMounted(async () => {
+  try {
+    const res = await $fetch('/api/order/menu')
+    const categories = res?.categories || {}
+
+    menuSections.value = {
+      sweetItems: (categories.sweetItems || []).map(i => ({ ...i })),
+      savoryItems: (categories.savoryItems || []).map(i => ({ ...i })),
+      drinks: (categories.drinks || []).map(i => ({ ...i })),
+      croissants: (categories.croissants || []).map(i => ({ ...i })),
+      onionSoup: (categories.onionSoup || []).map(i => ({ ...i })),
+      toppingsSweet: categories.toppingsSweet || [],
+      toppingsSavory: categories.toppingsSavory || [],
     }
-  ])
 
-  // Scroll suave até a seção clicada
-  function scrollToSection(key) {
-    const el = document.getElementById('section-' + key)
-    if (!el) return
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Preparar lista completa de addons
+    const toppings = [
+      ...(categories.toppingsSweet || []),
+      ...(categories.toppingsSavory || []),
+    ]
+    addonsOptions.value = toppings.map(t => ({
+      id: t.id,
+      label: t.name,
+      price_cents: t.variations?.[0]?.price_cents || 0,
+    }))
+  } catch (e) {
+    console.error('Erro ao carregar menu:', e)
+  } finally {
+    loading.value = false
   }
 
-  // Normaliza um array de addons, garantindo ordenação estável
-  function normalizeAddons(addons) {
-    return [...addons].sort()
+  // Restaurar carrinho
+  const saved = localStorage.getItem('crepegirl_cart')
+  if (saved) {
+    const parsed = JSON.parse(saved)
+    cart.value = parsed.map((item, index) => ({
+      ...item,
+      special_request: item.special_request || null,
+      price_cents: Number(item.price_cents || 0),
+      quantity: Number(item.quantity || 1),
+      addons: Array.isArray(item.addons) ? item.addons : [],
+      lineId: item.lineId || `${item.variationId}-${index}`,
+    }))
+  }
+})
+
+
+// ================================================================
+// Salvar carrinho no localStorage sempre que mudar
+// ================================================================
+watch(
+  cart,
+  val => {
+    localStorage.setItem('crepegirl_cart', JSON.stringify(val))
+  },
+  { deep: true }
+)
+
+
+// ================================================================
+//  itemNeedsModal — decide se item abre modal
+// ================================================================
+function itemNeedsModal(item) {
+  const { sweetItems, savoryItems, croissants } = menuSections.value
+
+  if (sweetItems.some(i => i.id === item.id)) return true
+  if (savoryItems.some(i => i.id === item.id)) return true
+  if (croissants.some(i => i.id === item.id)) return true
+
+  // Drinks e Soup abrem modal MAS sem addons → handled no modal
+  return true
+}
+
+
+// ================================================================
+// RETORNA LISTA DE ADDONS PERMITIDOS POR ITEM
+// ================================================================
+function getToppingsForItem(item) {
+  if (!item) return []
+
+  const {
+    sweetItems,
+    savoryItems,
+    croissants,
+    toppingsSweet,
+    toppingsSavory,
+  } = menuSections.value
+
+  // Sweet → sweet toppings
+  if (sweetItems.some(i => i.id === item.id)) {
+    return toppingsSweet.map(t => ({
+      id: t.id,
+      label: t.name,
+      price_cents: t.variations?.[0]?.price_cents || 0,
+    }))
   }
 
-  // Compara dois arrays de addons para saber se são equivalentes
-  function addonsEqual(a, b) {
-    const aa = normalizeAddons(a || [])
-    const bb = normalizeAddons(b || [])
-    if (aa.length !== bb.length) return false
-    for (let i = 0; i < aa.length; i++) if (aa[i] !== bb[i]) return false
-    return true
+  // Savory → savory toppings
+  if (savoryItems.some(i => i.id === item.id)) {
+    return toppingsSavory.map(t => ({
+      id: t.id,
+      label: t.name,
+      price_cents: t.variations?.[0]?.price_cents || 0,
+    }))
   }
 
-  // Busca um addon pelo seu ID (usado para exibir nome e preço)
-  function getAddonById(id) {
-    return addonsOptions.value.find((a) => a.id === id) || null
-  }
-
-  // Soma o preço total dos addons de um item no carrinho
-  function getAddonsPriceCents(cartItem) {
-    if (!cartItem.addons?.length) return 0
-    return cartItem.addons.reduce(
-      (sum, addon) => sum + (addon.price_cents || 0),
-      0
-    )
-  }
-
-  // Calcula o preço total de um item em centavos (base + addons)
-  function getItemTotalCents(cartItem) {
-    const base = Number(cartItem.price_cents || 0)
-    const addonsTotal = getAddonsPriceCents(cartItem)
-    return (base + addonsTotal) * Number(cartItem.quantity || 1)
-  }
-
-  // Executa ao montar o componente — busca menu + carrega carrinho
-  onMounted(async () => {
-    try {
-      // Busca o menu atualizado no backend
-      const res = await $fetch('/api/order/menu')
-      // Lê categorias com fallback em caso de estrutura diferente
-      const categories = res?.categories || res?.data?.categories || {}
-      // Popula o estado do menu
-      menuSections.value = {
-        sweetItems: (categories.sweetItems || []).map(i => ({ ...i, type: 'sweet' })),
-        savoryItems: (categories.savoryItems || []).map(i => ({ ...i, type: 'savory' })),
-        drinks: (categories.drinks || []).map(i => ({ ...i, type: 'drinks' })),
-
-        croissants: (categories.croissants || []).map(i => ({ ...i, type: 'croissant' })),
-        onionSoup: (categories.onionSoup || []).map(i => ({ ...i, type: 'onionSoup' })),
-
-        toppingsSweet: categories.toppingsSweet || [],
-        toppingsSavory: categories.toppingsSavory || [],
-      }
-
-      // Salva a porcentagem de taxa (tax) no localStorage para o checkout
-      if (res?.tax != null) {
-        localStorage.setItem(
-          'crepegirl_tax_percentage',
-          String(res.tax.percentage)
-        )
-      }
-
-      // Gera dinamicamente os addons (toppings) a partir do menu
-      const toppings = [
-        ...(categories.toppingsSweet || []),
-        ...(categories.toppingsSavory || []),
-      ]
-      addonsOptions.value = toppings.map((t) => ({
+  // Croissants → ambos
+  if (croissants.some(i => i.id === item.id)) {
+    return [
+      ...toppingsSweet.map(t => ({
         id: t.id,
         label: t.name,
         price_cents: t.variations?.[0]?.price_cents || 0,
-      }))
-    } catch (e) {
-      console.error('Erro ao carregar menu:', e)
-    } finally {
-      loading.value = false
-    }
+      })),
+      ...toppingsSavory.map(t => ({
+        id: t.id,
+        label: t.name,
+        price_cents: t.variations?.[0]?.price_cents || 0,
+      })),
+    ]
+  }
 
-    // 🔁 Restaura carrinho salvo anteriormente no navegador
-    const savedCart = localStorage.getItem('crepegirl_cart')
-    if (savedCart) {
-      const parsed = JSON.parse(savedCart)
-      cart.value = parsed.map((item, index) => ({
-        ...item,
-        price_cents: Number(item.price_cents || 0),
-        quantity: Number(item.quantity || 1),
-        addons: item.addons ? normalizeAddons(item.addons) : [],
-        lineId: item.lineId || `${item.variationId}-${index}`,
-      }))
-    }
-  })
+  // Drinks / Soup → sem toppings, só modal para special request
+  return []
+}
 
-  // Adiciona um novo item (ou aumenta quantidade se já existir)
-  function addToCart(item, addons = []) {
-    const variation = item.variations?.[0]
-    if (!variation || variation.price_cents == null) return
 
-    const normalizedAddons = normalizeAddons(addons)
+// ================================================================
+// ADD TO CART
+// ================================================================
+function addToCart(item, addons = [], request = null) {
+  const variation = item.variations?.[0]
+  if (!variation) return
 
-    const found = cart.value.find(
-      (i) =>
-        i.variationId === variation.id &&
-        addonsEqual(
-          (i.addons || []).filter((a) => a && a.id).map((a) => a.id) || [],
-          normalizedAddons
-        )
+  const normalizedAddons = normalizeAddons(addons)
+
+  // Verifica se já existe item igual (MESMAS addons)
+  const found = cart.value.find(i =>
+    i.variationId === variation.id &&
+    addonsEqual(
+      (i.addons || []).map(a => a.id),
+      normalizedAddons
     )
-
-    // Se o item já existe com as mesmas customizações, só aumenta a quantidade
-    if (found) {
-      found.quantity = Number(found.quantity || 1) + 1
-    } else {
-      const addons_array = normalizedAddons.map(getAddonById)
-      // Gera um ID único para o item no carrinho
-      const lineId = crypto?.randomUUID
-        ? crypto.randomUUID()
-        : `${variation.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-      // Adiciona ao carrinho
-      cart.value.push({
-        lineId,
-        id: item.id,
-        variationId: variation.id,
-        name: item.name,
-        price_cents: Number(variation.price_cents || 0),
-        quantity: 1,
-        image_url: item.image_url,
-        addons: addons_array,
-      })
-    }
-  }
-
-  // Remove 1 unidade de um item, ou remove totalmente se for o último
-  function removeFromCartByCartItem(cartItem) {
-    const idx = cart.value.findIndex((i) => i.lineId === cartItem.lineId)
-    if (idx === -1) return
-    if (cart.value[idx].quantity > 1) cart.value[idx].quantity--
-    else cart.value.splice(idx, 1)
-  }
-
-  // Aumenta a quantidade de um item diretamente pelo carrinho
-  function addFromCartItem(cartItem) {
-    cartItem.quantity++
-  }
-
-  // Determina se o item aceita toppings baseado no NOME
-  function getToppingsForItem(item) {
-    if (!item) return []
-
-    const {
-      sweetItems,
-      savoryItems,
-      croissants,
-      toppingsSweet,
-      toppingsSavory
-    } = menuSections.value
-
-    // ✔ Sweet crepe → somente sweet toppings
-    if (sweetItems.some(i => i.id === item.id)) {
-      return [
-        ...toppingsSweet.map(t => ({
-          id: t.id,
-          label: t.name,
-          price_cents: t.variations?.[0]?.price_cents || 0,
-        }))
-      ]
-    }
-
-    // ✔ Savory crepe → somente savory toppings
-    if (savoryItems.some(i => i.id === item.id)) {
-      return [
-        ...toppingsSavory.map(t => ({
-          id: t.id,
-          label: t.name,
-          price_cents: t.variations?.[0]?.price_cents || 0,
-        }))
-      ]
-    }
-
-    // ✔ Croissants → toppingsSweet + toppingsSavory (ambos)
-    if (croissants.some(i => i.id === item.id)) {
-      return [
-        ...toppingsSweet.map(t => ({
-          id: t.id,
-          label: t.name,
-          price_cents: t.variations?.[0]?.price_cents || 0,
-        })),
-        ...toppingsSavory.map(t => ({
-          id: t.id,
-          label: t.name,
-          price_cents: t.variations?.[0]?.price_cents || 0,
-        }))
-      ]
-    }
-
-    // ❌ Drinks e Soups → sem toppings
-    return []
-  }
-
-
-
-  // Soma o total de todos os itens + addons
-  const total = computed(
-    () => cart.value.reduce((acc, item) => acc + getItemTotalCents(item), 0)
   )
 
-  // Salva o carrinho no localStorage sempre que houver alteração
-  watch(
-    cart,
-    (val) => {
-      localStorage.setItem('crepegirl_cart', JSON.stringify(val))
-    },
-    {deep: true}
-  )
-
-  function goToCheckout() {
-    navigateTo('/order/checkout')
+  if (found) {
+    found.quantity++
+    return
   }
 
-  // Verifica se o item precisa abrir modal de customização
-  function itemNeedsModal(item) {
-    const { sweetItems, savoryItems, croissants } = menuSections.value
+  const addons_array = normalizedAddons.map(getAddonById)
 
-    if (sweetItems.some(i => i.id === item.id)) return true
-    if (savoryItems.some(i => i.id === item.id)) return true
-    if (croissants.some(i => i.id === item.id)) return true
+  const lineId = crypto?.randomUUID
+    ? crypto.randomUUID()
+    : `${variation.id}-${Date.now()}`
 
-    // Drinks e Onion Soup NÃO abrem modal
-    return false
+  cart.value.push({
+    lineId,
+    id: item.id,
+    variationId: variation.id,
+    name: item.name,
+    price_cents: Number(variation.price_cents),
+    quantity: 1,
+    image_url: item.image_url,
+    addons: addons_array,
+    special_request: request || null,
+  })
+}
+
+
+// ================================================================
+// Remove e adiciona do carrinho
+// ================================================================
+function removeFromCartByCartItem(cartItem) {
+  const idx = cart.value.findIndex(i => i.lineId === cartItem.lineId)
+  if (idx === -1) return
+  if (cart.value[idx].quantity > 1) cart.value[idx].quantity--
+  else cart.value.splice(idx, 1)
+}
+
+function addFromCartItem(cartItem) {
+  cartItem.quantity++
+}
+
+
+// ================================================================
+// ABRIR MODAL (novo item)
+// ================================================================
+function openCustomizationForNew(item) {
+  selectedItemForCustomization.value = item
+  selectedCartItemForCustomization.value = null
+
+  addonsOptions.value = getToppingsForItem(item)
+  selectedAddons.value = []
+  specialRequest.value = ""
+
+  showCustomizationModal.value = true
+}
+
+
+// ================================================================
+// ABRIR MODAL PARA ITEM EXISTENTE
+// ================================================================
+function openCustomizationForExisting(cartItem) {
+  selectedCartItemForCustomization.value = cartItem
+
+  selectedItemForCustomization.value =
+    menuFlat.value.find(i => i.id === cartItem.id) || null
+
+  addonsOptions.value = getToppingsForItem(selectedItemForCustomization.value)
+
+  selectedAddons.value = Array.isArray(cartItem.addons)
+    ? cartItem.addons.map(a => a.id)
+    : []
+
+  specialRequest.value = cartItem.special_request || ""
+
+  showCustomizationModal.value = true
+}
+
+
+// ================================================================
+// FECHAR MODAL
+// ================================================================
+function closeCustomization() {
+  showCustomizationModal.value = false
+  selectedItemForCustomization.value = null
+  selectedCartItemForCustomization.value = null
+  selectedAddons.value = []
+  specialRequest.value = ""
+}
+
+
+// ================================================================
+// CONFIRMAR CUSTOMIZAÇÃO
+// ================================================================
+function confirmCustomization() {
+  const normalized = normalizeAddons(selectedAddons.value)
+
+  if (selectedCartItemForCustomization.value) {
+    // Editar item existente
+    selectedCartItemForCustomization.value.addons =
+      normalized.map(getAddonById)
+
+    selectedCartItemForCustomization.value.special_request =
+      specialRequest.value || null
+  } else if (selectedItemForCustomization.value) {
+    // Novo item
+    addToCart(
+      selectedItemForCustomization.value,
+      normalized,
+      specialRequest.value
+    )
   }
 
-  // Abre o modal de customização ao adicionar um novo item
-  function openCustomizationForNew(item) {
-    // Se não aceita toppings → adiciona direto
-    if (!itemNeedsModal(item)) {
-      const variation = item.variations?.[0]
-      if (variation) {
-        addToCart(item, [])
-      }
-      return
-    }
-    selectedItemForCustomization.value = item
-    selectedCartItemForCustomization.value = null
+  closeCustomization()
+}
 
-    // Calcula os toppings possíveis para esse item
-    addonsOptions.value = getToppingsForItem(item)
 
-    selectedAddons.value = []
-    showCustomizationModal.value = true
-  }
+// ================================================================
+// Checkout
+// ================================================================
+function goToCheckout() {
+  navigateTo('/order/checkout')
+}
 
-  // Abre o modal para editar um item já existente no carrinho
-  function openCustomizationForExisting(cartItem) {
-    selectedCartItemForCustomization.value = cartItem
-    selectedItemForCustomization.value =
-      menuFlat.value.find((i) => i.id === cartItem.id) || null
-
-    // Calcula os toppings possíveis para esse item
-    addonsOptions.value = getToppingsForItem(selectedItemForCustomization.value)
-
-    selectedAddons.value = Array.isArray(cartItem.addons)
-      ? cartItem.addons.filter((a) => a && a.id).map((a) => a.id)
-      : []
-    showCustomizationModal.value = true
-  }
-
-  // Fecha o modal e reseta os estados de customização
-  function closeCustomization() {
-    showCustomizationModal.value = false
-    selectedItemForCustomization.value = null
-    selectedCartItemForCustomization.value = null
-    selectedAddons.value = []
-  }
-
-  // Confirma as customizações feitas e atualiza ou adiciona o item
-  function confirmCustomization() {
-    const normalized = normalizeAddons(selectedAddons.value)
-    if (selectedCartItemForCustomization.value) {
-      // Atualiza os add-ons do item já existente no carrinho
-      selectedCartItemForCustomization.value.addons =
-        normalized.map(getAddonById)
-    } else if (selectedItemForCustomization.value) {
-      // Adiciona um novo item já com esses add-ons
-      addToCart(selectedItemForCustomization.value, normalized)
-    }
-    closeCustomization()
-  }
 </script>
+
 
 <style>
   body {
