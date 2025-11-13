@@ -1,6 +1,7 @@
 <script setup>
   import {onMounted, ref, computed} from 'vue'
-
+  import { useToast } from '~/composables/useToast'
+  
   /* --------------------------------------------------------
    🧠 ESTADOS REATIVOS
   ----------------------------------------------------------- */
@@ -12,6 +13,8 @@
   const messageClass = ref('') // classe de cor dinâmica para mensagens
   const loading = ref(false) // estado de carregamento durante o pagamento
   const taxRate = ref(0) // porcentagem de tax aplicada
+  const tipType = ref(null)            // "15", "18", "20", "custom"
+  const tipCustom = ref('')            // valor custom (em dólares)
 
   // Referências para elementos HTML e instâncias Square
   const cardContainer = ref(null) // container do input de cartão
@@ -20,6 +23,10 @@
   let cardInstance = null // instância do cartão Square
   let applePay = null // instância Apple Pay
   let googlePay = null // instância Google Pay
+  const paymentSuccess = ref(false) // estado de pagamento bem-sucedido
+
+  // instancia o toast
+  const { showToast } = useToast()
 
   /* --------------------------------------------------------
    💰 TOTAL EM CENTAVOS
@@ -40,6 +47,26 @@
     )
   )
 
+  /**
+   * Computed property que calcula o valor da gorjeta em centavos.
+   * 
+   */
+
+  const tipAmountCents = computed(() => {
+    // Se nenhuma tip foi selecionada
+    if (!tipType.value) return 0
+
+    // Custom tip digitado pelo usuário
+    if (tipType.value === 'custom') {
+      const dollars = parseFloat(tipCustom.value || 0)
+      return Math.round(dollars * 100)
+    }
+
+    // Tip percentual (ex: 15, 18, 20)
+    const percent = Number(tipType.value)
+    return Math.round(subtotal.value * (percent / 100))
+  })
+
   // subtotal sem tax
   const subtotal = computed(() => total.value)
 
@@ -48,8 +75,10 @@
     Math.round(subtotal.value * (taxRate.value / 100))
   )
 
-  // total final (subtotal + tax)
-  const totalWithTax = computed(() => subtotal.value + taxAmount.value)
+  // total final (subtotal + tax + tip)
+  const totalWithTax = computed(() =>
+    subtotal.value + taxAmount.value + tipAmountCents.value
+  )
 
   /* --------------------------------------------------------
    🚀 onMounted — Inicializa carrinho e Square Payments
@@ -86,8 +115,7 @@
 
     // Verifica se o SDK da Square foi carregado no navegador
     if (!window.Square) {
-      message.value = 'Square SDK não carregou corretamente.'
-      messageClass.value = 'text-red-500'
+      showToast("Square SDK failed to load.", "error")
       return
     }
 
@@ -138,8 +166,7 @@
   function validateEmail() {
     const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
     if (!email.value || !emailRegex.test(email.value)) {
-      message.value = 'Por favor, insira um e-mail válido.'
-      messageClass.value = 'text-red-600'
+      showToast("Please enter a valid email address.", "error")
       return false
     }
     return true
@@ -149,11 +176,10 @@
    🧹 Limpar carrinho manualmente
   ----------------------------------------------------------- */
   function clearCart() {
-    if (confirm('Tem certeza que deseja limpar o carrinho?')) {
+    if (confirm('Are you sure you want to clean the cart?')) {
       localStorage.removeItem('crepegirl_cart')
       cart.value = []
-      message.value = 'Carrinho limpo com sucesso.'
-      messageClass.value = 'text-green-600'
+      showToast("Cart cleaned successfully.", "success")
     }
   }
 
@@ -208,8 +234,7 @@
    */
   async function tokenizeAndPay(result) {
     if (result.status !== 'OK') {
-      message.value = 'Falha ao validar pagamento.'
-      messageClass.value = 'text-red-600'
+      showToast("Payment validation failed.", "error")
       return
     }
 
@@ -221,6 +246,7 @@
         body: {
           sourceId: result.token,
           email: email.value,
+          tipAmount: tipAmountCents.value,
           items: cart.value.map((i) => ({
             id: i.id,
             quantity: i.quantity,
@@ -231,20 +257,19 @@
 
       // Se tudo deu certo
       if (response.success && response.payment?.status === 'COMPLETED') {
-        message.value = '✅ Pagamento concluído! Verifique seu e-mail.'
-        messageClass.value = 'text-green-600'
-
+        showToast("Check your email for confirmation.", "info")
+        // mostra mensagem de pagamento bem-sucedido
+        paymentSuccess.value = true
+        setTimeout(() => paymentSuccess.value = false, 2000)
         // Limpa carrinho e redireciona
         localStorage.removeItem('crepegirl_cart')
-        setTimeout(() => navigateTo(`/order/${response.payment.id}`), 1500)
+        setTimeout(() => navigateTo(`/order/${response.payment.id}`), 1300)
       } else {
-        message.value = response.message || '❌ Pagamento não autorizado.'
-        messageClass.value = 'text-red-600'
+        showToast(response.message || "Payment not authorized.", "error")
       }
     } catch (err) {
       console.error(err)
-      message.value = 'Erro ao processar pagamento.'
-      messageClass.value = 'text-red-600'
+      showToast("Communication error with payment server.", "error")
     }
   }
 
@@ -257,6 +282,10 @@
 </script>
 
 <template>
+    <div v-if="paymentSuccess"
+     class="bg-green-600 text-white text-center py-2 font-semibold animate-fade">
+      Payment successful! Redirecting...
+    </div>
   <div
     class="max-w-md mx-auto mt-10 bg-white p-6 rounded-lg shadow-lg space-y-6"
   >
@@ -332,11 +361,57 @@
 
     <div class="text-center text-lg font-semibold mb-3 pt-3 space-y-1">
       <div>Subtotal: ${{ (subtotal / 100).toFixed(2) }}</div>
-      <div>
-        Tax ({{ taxRate.toFixed(2) }}%): ${{ (taxAmount / 100).toFixed(2) }}
-      </div>
+      <div>Tax ({{ taxRate.toFixed(2) }}%): ${{ (taxAmount / 100).toFixed(2) }}</div>
+      <div>Tip: ${{ (tipAmountCents / 100).toFixed(2) }}</div>
       <div class="font-bold text-green-700">
         Total: ${{ (totalWithTax / 100).toFixed(2) }}
+      </div>
+    </div>
+
+    <!-- Tip Selection -->
+    <div class="space-y-3 mt-4">
+      <label class="text-sm font-medium text-gray-700">Add a Tip</label>
+
+      <!-- Tip buttons -->
+      <div class="grid grid-cols-4 gap-2">
+        <button
+          v-for="p in [15, 18, 20]"
+          :key="p"
+          @click="tipType = String(p)"
+          :class="[
+            'py-2 rounded-lg border text-center font-medium transition',
+            tipType === String(p)
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-gray-700 border-gray-300'
+          ]"
+        >
+          {{ p }}%
+        </button>
+
+        <!-- custom button -->
+        <button
+          @click="tipType = 'custom'"
+          :class="[
+            'py-2 rounded-lg border text-center font-medium transition',
+            tipType === 'custom'
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-gray-700 border-gray-300'
+          ]"
+        >
+          Custom
+        </button>
+      </div>
+
+      <!-- Custom tip input -->
+      <div v-if="tipType === 'custom'" class="mt-2">
+        <input
+          v-model="tipCustom"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Enter amount (e.g. 3.00)"
+          class="w-full border border-gray-300 p-2 rounded-lg"
+        />
       </div>
     </div>
 
@@ -386,7 +461,7 @@
       :disabled="loading || !email"
       @click="handlePay"
     >
-      {{ loading ? 'Processando...' : 'Pagar' }}
+      {{ loading ? 'Processing...' : 'Pay' }}
     </button>
 
     <p v-if="message" class="text-center text-sm mt-4" :class="messageClass">

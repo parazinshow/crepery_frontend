@@ -13,6 +13,8 @@ model Order {
   dateKey       String   // chave diária para reset (ex: 2025-11-10)
   email         String?
   totalAmount   Int
+  tipAmount Int?    // em centavos
+  baseTotal Int?    // subtotal + tax (sem tip)
   currency      String      @default("USD")
   squareId      String      @unique
   squareOrder   String? 

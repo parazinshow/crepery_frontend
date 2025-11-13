@@ -22,7 +22,10 @@ export default defineEventHandler(async (event) => {
     // 1️⃣ Lê o corpo da requisição enviada pelo frontend
     //    Contém sourceId (token do cartão), email e itens selecionados.
     const body = await readBody(event)
-    const { sourceId, email, items } = body
+    const { sourceId, email, items, tipAmount = 0 } = body
+
+    // Garante que tipAmount sempre será inteiro em centavos
+    const tipCents = Math.max(0, Number(tipAmount) || 0)
 
     // 2️⃣ Verifica se os dados obrigatórios foram enviados
     if (!sourceId) {
@@ -125,11 +128,18 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // 💰 Calcula valor total com taxa (base + addons)
+    // 🧮 SUBTOTAL (itens + addons)
     const subtotalWithAddons = verifiedTotal + addonsTotalCents
+
+    // TAX (somente sobre subtotal, SEM tip)
     const taxRate = taxPercentage / 100
     const taxAmount = Math.round(subtotalWithAddons * taxRate)
-    const totalWithTax = Math.round(subtotalWithAddons + taxAmount)
+
+    // TOTAL BASE (subtotal + tax)
+    const baseTotal = subtotalWithAddons + taxAmount
+
+    // TOTAL FINAL (incluindo tip)
+    const totalWithTax = baseTotal + tipCents
 
     // 4️⃣ Pega as credenciais da Square (ambiente sandbox ou produção)
     const { baseUrl, token } = getSquareConfig()
@@ -185,7 +195,7 @@ export default defineEventHandler(async (event) => {
 
     // 6️⃣ Cria o pagamento real associado ao pedido criado
     //    O valor vem do cálculo validado direto na Square (verifiedTotal + addons)
-    const orderTotal = orderRes?.order?.total_money?.amount ?? totalWithTax
+    const orderTotal = orderRes?.order?.total_money?.amount
 
     const paymentRes = await $fetch(`${baseUrl}/v2/payments`, {
       method: 'POST',
@@ -197,10 +207,17 @@ export default defineEventHandler(async (event) => {
       body: JSON.stringify({
         source_id: sourceId,
         idempotency_key: crypto.randomUUID(),
+
+        // 💵 Valor final (subtotal + tax + tip)
         amount_money: {
-          amount: Math.round(orderTotal),
+          amount: orderTotal, //e valor com tips
           currency: 'USD',
         },
+        // 💰 Tip separado para a Square (opcional mas recomendado)
+        tip_money: tipCents > 0 ? {
+          amount: tipCents,
+          currency: 'USD'
+        } : undefined,
         order_id: orderId,        // 🔗 vincula o pagamento ao pedido
         location_id: LOCATION_ID, // localização usada na transação
       }),
@@ -230,7 +247,9 @@ export default defineEventHandler(async (event) => {
     const savedOrder = await prisma.order.create({
       data: {
         email: email || null,
-        totalAmount: Math.round(orderTotal), // guarda o valor total em centavos
+        totalAmount: totalWithTax, // total final com tip
+        baseTotal: baseTotal,      // sem tip
+        tipAmount: tipCents,       // valor da gorjeta
         currency: payment.amount_money.currency,
         squareId: payment.id,     // ID do pagamento Square
         squareOrder: orderId,     // ID do pedido Square
@@ -284,6 +303,7 @@ export default defineEventHandler(async (event) => {
         taxAmount,         // 💰 tax em centavos
         taxPercentage,     // ex: 9.4
         subtotal: subtotalWithAddons, // em centavos
+        tipAmount: tipCents,
         total: totalWithTax // em centavos
       })
     }
@@ -292,13 +312,14 @@ export default defineEventHandler(async (event) => {
     //    Inclui dados do pagamento, pedido salvo e se o e-mail foi enviado.
     return {
       success: true,
-      message: 'Pagamento e pedido confirmados com sucesso!',
+      message: 'Payment and order successfully confirmed!',
       order: savedOrder,
       payment,
       emailSent: !!email,
       taxPercentage,
       taxAmount,
       totalWithTax,
+      tipAmount: tipCents
     }
 
   } catch (err) {

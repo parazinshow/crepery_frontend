@@ -216,6 +216,9 @@ function logout() {
             </ul>
 
             <p class="mt-2 font-semibold">
+              Tip: ${{ ((order.tipAmount || 0) / 100).toFixed(2) }}
+            </p>
+            <p class="mt-2 font-semibold">
               Total: ${{ ((order.totalAmount || 0) / 100).toFixed(2) }}
             </p>
           </div>

@@ -87,9 +87,11 @@
         </ul>
       </div>
 
-      <!-- Taxes paid -->
+      <!-- Taxes paid and Tips-->
       <div class="text-right font-semibold text-lg border-t pt-2">
         Tax: ${{ (taxPaid / 100).toFixed(2) }}
+        <br>
+        Tip: ${{ (displayOrder.tipAmount / 100).toFixed(2) }}
       </div>
       <!-- Totais -->
       <div class="text-right font-semibold text-lg border-t pt-2">
@@ -213,6 +215,8 @@ const displayOrder = computed(() => {
   //Order Number
   const dailyNumber = o.dailyNumber ?? null
 
+  const tipAmount = o.tipAmount ?? 0
+  
   // Retorna tudo padronizado para a interface
   return {
     id,
@@ -224,7 +228,8 @@ const displayOrder = computed(() => {
     items,
     cardBrand,
     last4,
-    dailyNumber
+    dailyNumber,
+    tipAmount
   }
 })
 

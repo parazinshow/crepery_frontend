@@ -23,7 +23,7 @@ import QRCode from 'qrcode'         // 🔳 Biblioteca para gerar QR Codes em ba
   })
 
 export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pickupTime, receiptUrl, items = [], taxAmount
-  ,taxPercentage,subtotal,total }) {
+  ,taxPercentage,subtotal, tipAmount = 0,total }) {
   // 🚨 Garante que o e-mail de destino foi informado
   if (!to) throw new Error('Missing destination email address')
 
@@ -114,6 +114,7 @@ const itemsHtml = items.length
         <p style="margin-top:14px;font-size:15px;">
           Subtotal: <b>$${subtotalDollars}</b><br>
           Tax (${taxPercentage}%): <b>$${taxDollars}</b><br>
+          Tip: <b>$${(tipAmount / 100).toFixed(2)}</b><br>
           Total: <b>$${totalDollars}</b>
         </p>
       `
