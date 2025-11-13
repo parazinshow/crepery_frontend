@@ -64,6 +64,8 @@ export default defineEventHandler(async (event) => {
   const sweetCat = categories.find(c => c.category_data.name === 'Sweet Crepe')
   const savoryCat = categories.find(c => c.category_data.name === 'Savory Crepe')
   const drinksCat = categories.find(c => c.category_data.name === 'Drinks')
+  const croissantCat = categories.find(c => c.category_data.name === 'Croissants')
+  const onionSoupCat = categories.find(c => c.category_data.name === 'Onion Soup')
 
   const sweetExtraCats = categories.filter(c => c.category_data.parent_category?.id === sweetCat?.id)
   const savoryExtraCats = categories.filter(c => c.category_data.parent_category?.id === savoryCat?.id)
@@ -91,6 +93,9 @@ export default defineEventHandler(async (event) => {
   const sweetItems = []
   const savoryItems = []
   const drinks = []
+  const croissants = []
+  const onionSoupItems = []
+
   const toppingsSweet = []
   const toppingsSavory = []
 
@@ -102,6 +107,9 @@ export default defineEventHandler(async (event) => {
     else if (drinksCat && catId === drinksCat.id) drinks.push(item)
     else if (sweetExtraCats.some(c => c.id === catId)) toppingsSweet.push(item)
     else if (savoryExtraCats.some(c => c.id === catId)) toppingsSavory.push(item)
+    else if (croissantCat && catId === croissantCat.id) croissants.push(item)
+    else if (onionSoupCat && catId === onionSoupCat.id) onionSoupItems.push(item)
+
   }
 
   // 7️⃣ Normaliza os itens para o formato padrão
@@ -111,6 +119,8 @@ export default defineEventHandler(async (event) => {
     ...drinks,
     ...toppingsSweet,
     ...toppingsSavory,
+    ...croissants,
+    ...onionSoupItems,
   ].map(normalizeItem)
 
   // 🔍 Coleta todos os IDs de imagem únicos
@@ -157,6 +167,8 @@ export default defineEventHandler(async (event) => {
       sweetItems: applyImages(sweetItems),
       savoryItems: applyImages(savoryItems),
       drinks: applyImages(drinks),
+      croissants: applyImages(croissants),
+      onionSoup: applyImages(onionSoupItems),
       toppingsSweet: applyImages(toppingsSweet),
       toppingsSavory: applyImages(toppingsSavory),
     },

@@ -7,6 +7,18 @@
       <div class="max-w-7xl mx-auto p-6">
         <h1 class="page-title text-5xl lg:text-7xl text-center">Menu</h1>
 
+        <!-- TOP CATEGORY NAVIGATION -->
+        <div class="flex flex-wrap gap-3 justify-center my-6">
+          <button
+            v-for="section in categorizedMenu"
+            :key="section.key"
+            @click="scrollToSection(section.key)"
+            class="px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300 transition text-base"
+          >
+            {{ section.title }}
+          </button>
+        </div>
+
         <!-- GRID PRINCIPAL: ESQUERDA MENU / DIREITA CARRINHO -->
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
           <!-- COLUNA ESQUERDA: MENU -->
@@ -14,46 +26,55 @@
             <!-- Estado de carregamento -->
             <div v-if="loading" class="page-body text-center py-10">Loading menu...</div>
 
-            <!-- Menu items -->
-            <div v-else class="divide-y">
+            <!-- MENU COM SEÇÕES FIXAS -->
+            <div v-else class="space-y-8">
+
+              <!-- Cada seção -->
               <div
-                v-for="item in menuFlat"
-                :key="item.id"
-                class="py-4 flex items-center gap-4"
+                v-for="section in categorizedMenu"
+                :key="section.key"
+                :id="'section-' + section.key"
+                class="scroll-mt-24"
               >
-                <img
-                  :src="item.image_url || placeholder"
-                  alt=""
-                  class="w-20 h-20 rounded-lg object-contain"
-                />
-                <div class="page-body flex-1">
-                  <h3 class="text-2xl font-bold">{{ item.name }}</h3>
-                  <p class="text-base">
-                    {{ item.description || ' ' }}
-                  </p>
+                <!-- Título da seção -->
+                <h2 class="text-4xl font-bold mb-3 text-center">
+                  {{ section.title }}
+                </h2>
 
-                  <!-- evita erro se variations estiver vazio -->
-                  <p v-if="item.variations?.[0]" class="font-bold mt-1">
-                    ${{
-                      (
-                        Number(item.variations[0].price_cents || 0) / 100
-                      ).toFixed(2)
-                    }}
-                  </p>
-                  <p v-else class="text-sm">Price unavailable</p>
-                </div>
-
-                <!-- Botão único de adicionar (abre customização) -->
-                <div class="flex items-center">
-                  <button
-                    @click="openCustomizationForNew(item)"
-                    class="default-button h-16 w-16 lg:default-button-desktop"
+                <!-- Lista de itens -->
+                <div class="divide-y">
+                  <div
+                    v-for="item in section.items"
+                    :key="item.id"
+                    class="py-4 flex items-center gap-4"
                   >
-                    Add to Cart
-                  </button>
+                    <img
+                      :src="item.image_url || placeholder"
+                      class="w-20 h-20 rounded-lg object-contain"
+                    />
+
+                    <div class="page-body flex-1">
+                      <h3 class="text-2xl font-bold">{{ item.name }}</h3>
+                      <p>{{ item.description }}</p>
+
+                      <p v-if="item.variations?.[0]" class="font-bold mt-1">
+                        ${{ (item.variations[0].price_cents / 100).toFixed(2) }}
+                      </p>
+                    </div>
+
+                    <button
+                      @click="openCustomizationForNew(item)"
+                      class="default-button h-16 w-16 lg:default-button-desktop"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               </div>
+
             </div>
+
+
           </div>
 
           <!-- DIREITA: CARRINHO -->
@@ -159,6 +180,7 @@
 
                   <!-- Customize button -->
                   <button
+                    v-if="itemNeedsModal(cartItem)"
                     @click="openCustomizationForExisting(cartItem)"
                     class="default-button py-1 px-4 lg:default-button-desktop"
                   >
@@ -258,10 +280,6 @@
 <script setup>
   import {ref, computed, onMounted, watch} from 'vue'
 
-  /* ======================================================
- 🧠 STATE PRINCIPAL — VARIÁVEIS REATIVAS DE CONTROLE
------------------------------------------------------- */
-
   // Imagem transparente usada como fallback em casos sem imagem
   const placeholder =
     'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' // 1x1 transparente
@@ -271,23 +289,26 @@
     sweetItems: [], // crepes doces
     savoryItems: [], // crepes salgados
     drinks: [], // bebidas
+    croissants: [],
+    onionSoup: [],  
     toppingsSweet: [], // toppings de doces
     toppingsSavory: [], // toppings de salgados
   })
+
   // "menuFlat" é um array plano com todos os itens principais (sem toppings)
   const menuFlat = computed(() => [
     ...menuSections.value.sweetItems,
     ...menuSections.value.savoryItems,
     ...menuSections.value.drinks,
+    ...menuSections.value.croissants,
+    ...menuSections.value.onionSoup,
   ])
+
   // Estado do carrinho
   const cart = ref([])
   // Indicador de carregamento (exibe “Loading...” até o menu ser carregado)
   const loading = ref(true)
 
-  /* ======================================================
- 🍓 ADDONS — ITENS OPCIONAIS (vêm do cache da Square)
------------------------------------------------------- */
   // addonsOptions é preenchido dinamicamente com toppings do cache
   const addonsOptions = ref([])
 
@@ -297,9 +318,42 @@
   const selectedCartItemForCustomization = ref(null) // item já existente no carrinho
   const selectedAddons = ref([]) // lista de addons selecionados
 
-  /* ======================================================
- ⚙️ HELPERS — FUNÇÕES DE APOIO
------------------------------------------------------- */
+  // CATEGORIAS PRINCIPAIS DO MENU
+  const categorizedMenu = computed(() => [
+    {
+      key: 'sweet',
+      title: '🥞 Sweet Crepes',
+      items: menuSections.value.sweetItems
+    },
+    {
+      key: 'savory',
+      title: '🥓 Savory Crepes',
+      items: menuSections.value.savoryItems
+    },
+    {
+      key: 'croissants',
+      title: '🥐 Croissants',
+      items: menuSections.value.croissants || []
+    },
+    {
+      key: 'onionSoup',
+      title: '🍲 Onion Soup',
+      items: menuSections.value.onionSoup || []
+    },
+    {
+      key: 'drinks',
+      title: '🥤 Drinks',
+      items: menuSections.value.drinks
+    }
+  ])
+
+  // Scroll suave até a seção clicada
+  function scrollToSection(key) {
+    const el = document.getElementById('section-' + key)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   // Normaliza um array de addons, garantindo ordenação estável
   function normalizeAddons(addons) {
     return [...addons].sort()
@@ -335,9 +389,6 @@
     return (base + addonsTotal) * Number(cartItem.quantity || 1)
   }
 
-  /* ======================================================
- 🍽️ FETCH MENU (CLIENTE)
------------------------------------------------------- */
   // Executa ao montar o componente — busca menu + carrega carrinho
   onMounted(async () => {
     try {
@@ -347,9 +398,13 @@
       const categories = res?.categories || res?.data?.categories || {}
       // Popula o estado do menu
       menuSections.value = {
-        sweetItems: categories.sweetItems || [],
-        savoryItems: categories.savoryItems || [],
-        drinks: categories.drinks || [],
+        sweetItems: (categories.sweetItems || []).map(i => ({ ...i, type: 'sweet' })),
+        savoryItems: (categories.savoryItems || []).map(i => ({ ...i, type: 'savory' })),
+        drinks: (categories.drinks || []).map(i => ({ ...i, type: 'drinks' })),
+
+        croissants: (categories.croissants || []).map(i => ({ ...i, type: 'croissant' })),
+        onionSoup: (categories.onionSoup || []).map(i => ({ ...i, type: 'onionSoup' })),
+
         toppingsSweet: categories.toppingsSweet || [],
         toppingsSavory: categories.toppingsSavory || [],
       }
@@ -392,9 +447,6 @@
     }
   })
 
-  /* ======================================================
- 🛒 OPERAÇÕES DO CARRINHO
------------------------------------------------------- */
   // Adiciona um novo item (ou aumenta quantidade se já existir)
   function addToCart(item, addons = []) {
     const variation = item.variations?.[0]
@@ -447,17 +499,67 @@
     cartItem.quantity++
   }
 
-  /* ======================================================
- 💵 TOTAL GERAL DO CARRINHO
------------------------------------------------------- */
+  // Determina se o item aceita toppings baseado no NOME
+  function getToppingsForItem(item) {
+    if (!item) return []
+
+    const {
+      sweetItems,
+      savoryItems,
+      croissants,
+      toppingsSweet,
+      toppingsSavory
+    } = menuSections.value
+
+    // ✔ Sweet crepe → somente sweet toppings
+    if (sweetItems.some(i => i.id === item.id)) {
+      return [
+        ...toppingsSweet.map(t => ({
+          id: t.id,
+          label: t.name,
+          price_cents: t.variations?.[0]?.price_cents || 0,
+        }))
+      ]
+    }
+
+    // ✔ Savory crepe → somente savory toppings
+    if (savoryItems.some(i => i.id === item.id)) {
+      return [
+        ...toppingsSavory.map(t => ({
+          id: t.id,
+          label: t.name,
+          price_cents: t.variations?.[0]?.price_cents || 0,
+        }))
+      ]
+    }
+
+    // ✔ Croissants → toppingsSweet + toppingsSavory (ambos)
+    if (croissants.some(i => i.id === item.id)) {
+      return [
+        ...toppingsSweet.map(t => ({
+          id: t.id,
+          label: t.name,
+          price_cents: t.variations?.[0]?.price_cents || 0,
+        })),
+        ...toppingsSavory.map(t => ({
+          id: t.id,
+          label: t.name,
+          price_cents: t.variations?.[0]?.price_cents || 0,
+        }))
+      ]
+    }
+
+    // ❌ Drinks e Soups → sem toppings
+    return []
+  }
+
+
+
   // Soma o total de todos os itens + addons
   const total = computed(
     () => cart.value.reduce((acc, item) => acc + getItemTotalCents(item), 0)
   )
 
-  /* ======================================================
- 💾 SINCRONIZAÇÃO AUTOMÁTICA DO CARRINHO
------------------------------------------------------- */
   // Salva o carrinho no localStorage sempre que houver alteração
   watch(
     cart,
@@ -467,20 +569,38 @@
     {deep: true}
   )
 
-  /* ======================================================
- 🧾 NAVEGAÇÃO — AVANÇAR PARA O CHECKOUT
------------------------------------------------------- */
   function goToCheckout() {
     navigateTo('/order/checkout')
   }
 
-  /* ======================================================
- 🎛️ MODAL DE CUSTOMIZAÇÃO
------------------------------------------------------- */
+  // Verifica se o item precisa abrir modal de customização
+  function itemNeedsModal(item) {
+    const { sweetItems, savoryItems, croissants } = menuSections.value
+
+    if (sweetItems.some(i => i.id === item.id)) return true
+    if (savoryItems.some(i => i.id === item.id)) return true
+    if (croissants.some(i => i.id === item.id)) return true
+
+    // Drinks e Onion Soup NÃO abrem modal
+    return false
+  }
+
   // Abre o modal de customização ao adicionar um novo item
   function openCustomizationForNew(item) {
+    // Se não aceita toppings → adiciona direto
+    if (!itemNeedsModal(item)) {
+      const variation = item.variations?.[0]
+      if (variation) {
+        addToCart(item, [])
+      }
+      return
+    }
     selectedItemForCustomization.value = item
     selectedCartItemForCustomization.value = null
+
+    // Calcula os toppings possíveis para esse item
+    addonsOptions.value = getToppingsForItem(item)
+
     selectedAddons.value = []
     showCustomizationModal.value = true
   }
@@ -490,6 +610,10 @@
     selectedCartItemForCustomization.value = cartItem
     selectedItemForCustomization.value =
       menuFlat.value.find((i) => i.id === cartItem.id) || null
+
+    // Calcula os toppings possíveis para esse item
+    addonsOptions.value = getToppingsForItem(selectedItemForCustomization.value)
+
     selectedAddons.value = Array.isArray(cartItem.addons)
       ? cartItem.addons.filter((a) => a && a.id).map((a) => a.id)
       : []
