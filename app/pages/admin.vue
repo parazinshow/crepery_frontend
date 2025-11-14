@@ -37,6 +37,9 @@ const {
 // ID do intervalo de polling, para podermos limpar depois
 let intervalId = null
 
+// Estado para controlar animação de loading ao marcar pedido como feito
+const loadingDone = ref({})
+
 // Quando a página monta, se já estiver autenticado (token no localStorage),
 // carrega os pedidos e começa o polling a cada 30s
 onMounted(() => {
@@ -72,6 +75,23 @@ async function handleLogin() {
     showToast('Wrong PIN', 'error')
   }
 }
+
+// Marca um pedido como feito, com feedback visual
+async function handleMarkDone(orderId) {
+  // bloqueia o botão
+  loadingDone.value[orderId] = true
+
+  try {
+    await markDone(orderId)     // chama o composable original
+    showToast("Order marked as done!", "success")
+  } catch (err) {
+    showToast("Error marking order", "error")
+  } finally {
+    // libera botão
+    loadingDone.value[orderId] = false
+  }
+}
+
 
 // Faz logout limpando o token e parando o polling
 function logout() {
@@ -159,10 +179,13 @@ function logout() {
               </h2>
 
               <button
-                @click="markDone(order.id)"
-                class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded"
+                @click="handleMarkDone(order.id)"
+                :disabled="loadingDone[order.id]"
+                class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded
+                      disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ✅ Done
+                <span v-if="loadingDone[order.id]">⏳ Processing...</span>
+                <span v-else>✅ Done</span>
               </button>
             </div>
 
