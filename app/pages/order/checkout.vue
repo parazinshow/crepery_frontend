@@ -1,5 +1,5 @@
 <script setup>
-  import {onMounted, ref, computed} from 'vue'
+  import { onMounted, ref, computed, watch } from 'vue'
   import { useToast } from '~/composables/useToast'
   
   /* --------------------------------------------------------
@@ -15,6 +15,10 @@
   const taxRate = ref(0) // porcentagem de tax aplicada
   const tipType = ref(null)            // "15", "18", "20", "custom"
   const tipCustom = ref('')            // valor custom (em dólares)
+  const pickupTime = ref('')          // horário escolhido pelo cliente ("HH:MM")
+  const pickupSlots = ref([])         // lista de horários disponíveis
+  const minPickupMinutes = ref(null)  // só pra mostrar texto tipo "mínimo 15 min"
+
 
   // Referências para elementos HTML e instâncias Square
   const cardContainer = ref(null) // container do input de cartão
@@ -102,6 +106,9 @@
     )
     cart.value = loaded
 
+    // Carrega horários de retirada disponíveis
+    await loadPickupSlots()
+
     // 🔹 Configuração do ambiente e chaves públicas da Square
     const config = useRuntimeConfig()
     const isProd = process.env.NODE_ENV === 'production'
@@ -152,6 +159,27 @@
     }
   })
 
+  // ================================================================
+  // 🔁 Recarrega horários de pickup sempre que o carrinho mudar
+  // ================================================================
+  watch(
+    cart,
+    () => {
+      // evite loop: se carrinho está vazio, já limpa e sai
+      if (!cart.value.length) {
+        pickupSlots.value = []
+        pickupTime.value = ''
+        minPickupMinutes.value = null
+        return
+      }
+
+      loadPickupSlots()
+    },
+    { deep: true }
+  )
+
+
+  // Calcula o preço total dos addons de um item do carrinho
   function getAddonsPriceCents(cartItem) {
     if (!cartItem.addons?.length) return 0
     return cartItem.addons.reduce(
@@ -159,6 +187,38 @@
       0
     )
   }
+
+  // Carrega horários de retirada disponíveis
+  async function loadPickupSlots() {
+  if (!cart.value.length) {
+    pickupSlots.value = []
+    pickupTime.value = ''
+    minPickupMinutes.value = null
+    return
+  }
+
+  try {
+    const res = await $fetch('/api/order/pickup-slots', {
+      method: 'POST',
+      body: {
+        // Backend só precisa de quantity
+        items: cart.value.map((i) => ({
+          quantity: i.quantity,
+        })),
+      },
+    })
+
+    pickupSlots.value = res.slots || []
+    minPickupMinutes.value = res.minPickupMinutes ?? null
+
+    // se ainda não escolheu nada, seta o primeiro como padrão
+    if (!pickupTime.value && pickupSlots.value.length) {
+      pickupTime.value = pickupSlots.value[0]
+    }
+  } catch (err) {
+    console.error('Failed to load pickup slots', err)
+  }
+}
 
   /* --------------------------------------------------------
    📧 Validação de e-mail
@@ -238,6 +298,12 @@
       return
     }
 
+    // 🕒 exige que tenha um pickupTime válido
+    if (!pickupTime.value) {
+      showToast("Please select a pickup time.", "error")
+      return
+    }
+
     try {
       // Envia ao servidor apenas IDs e quantidades
       // O preço é recalculado direto na API da Square
@@ -247,6 +313,7 @@
           sourceId: result.token,
           email: email.value,
           tipAmount: tipAmountCents.value,
+          pickupTime: pickupTime.value,
           items: cart.value.map((i) => ({
             id: i.id,
             variationId: i.variationId,
@@ -419,6 +486,33 @@
         />
       </div>
     </div>
+
+    <!-- 🕒 Pickup time -->
+    <div class="mt-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Pickup time
+      </label>
+
+      <select
+        v-model="pickupTime"
+        class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option disabled value="">Select a pickup time</option>
+        <option
+          v-for="slot in pickupSlots"
+          :key="slot"
+          :value="slot"
+        >
+          {{ slot }}
+        </option>
+      </select>
+
+      <p v-if="minPickupMinutes !== null" class="text-xs text-gray-500 mt-1">
+        Minimum pickup time: {{ minPickupMinutes }} minutes from now
+        (may increase if the kitchen is busy).
+      </p>
+    </div>
+
 
     <!-- Campo de email -->
     <div>

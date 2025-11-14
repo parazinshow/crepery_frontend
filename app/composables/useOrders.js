@@ -31,6 +31,22 @@ export function useOrders() {
       // Usa apiFetch para já incluir Authorization e tratar 401
       const res = await apiFetch('/api/order/orders')
       orders.value = res.orders || []
+      
+      // Ordenar pedidos pelo pickupTime (mais cedo → mais prioritário)
+      orders.value = (res.orders || []).sort((a, b) => {
+        // caso venha nulo ou vazio — deixa no final
+        if (!a.pickupTime) return 1
+        if (!b.pickupTime) return -1
+
+        // converte para Date relativa ao hoje
+        const today = new Date().toISOString().split("T")[0] // "2025-11-13"
+
+        const timeA = new Date(`${today}T${a.pickupTime}:00`)
+        const timeB = new Date(`${today}T${b.pickupTime}:00`)
+
+        return timeA - timeB
+      })
+
     } catch (err) {
       console.error('Erro ao buscar pedidos:', err)
 

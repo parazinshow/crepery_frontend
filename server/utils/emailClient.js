@@ -1,6 +1,7 @@
 // Importa dependências necessárias
 import nodemailer from 'nodemailer' // 📧 Biblioteca usada para enviar e-mails
 import QRCode from 'qrcode'         // 🔳 Biblioteca para gerar QR Codes em base64
+import { formatPickupTimeServer } from './time.js'
 
 // ========================================================
 // ✉️ E-mail: Order Confirmation
@@ -22,7 +23,7 @@ import QRCode from 'qrcode'         // 🔳 Biblioteca para gerar QR Codes em ba
     },
   })
 
-export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pickupTime, receiptUrl, items = [], taxAmount
+export async function sendOrderConfirmationEmail({ to, orderId, orderNumber, pickupTime, receiptUrl, items = [], taxAmount
   ,taxPercentage,subtotal, tipAmount = 0,total }) {
   // 🚨 Garante que o e-mail de destino foi informado
   if (!to) throw new Error('Missing destination email address')
@@ -32,6 +33,9 @@ export async function sendOrderConfirmationEmail({ to, orderId, orderNumber,pick
 
   // 🧾 Gera o QR Code em formato base64 que aponta para o link do pedido
   const qrCode = await QRCode.toDataURL(orderUrl)
+
+  // ⏰ Formata o tempo de pickup para exibição no e-mail
+  const formattedPickupTime = formatPickupTimeServer(pickupTime)
 
   // 💳 Monta a seção de recibo Square, se disponível
   // Se o pedido estiver no sandbox, mostra aviso em vez do link
@@ -148,7 +152,7 @@ const itemsHtml = items.length
     <div style="font-family: Arial, sans-serif; color:#333;">
       <h2>🥞 The Crêpe Girl — Order Confirmation</h2>
       <p>Thank you for your order!</p>
-      <p>Your order <b>#${orderNumber}</b> will be ready in <b>${pickupTime || '15 minutes'}</b>.</p>
+      <p>Your order <b>#${orderNumber}</b> will be ready at <b>${formattedPickupTime}</b>.</p>
 
       <h3 style="margin-top:15px;">🧾 Order summary</h3>
       ${itemsHtml}
