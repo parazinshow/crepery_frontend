@@ -103,7 +103,7 @@
             </div>
 
             <!-- SEÇÃO 2 — CARDS CENTRALIZADOS -->
-            <div v-else key="section-2" class="w-full max-w-md mx-auto">
+            <div v-else key="section-2" class="w-full max-w-md lg:max-w-2xl mx-auto">
               <div
                 class="flex flex-col items-center justify-center gap-6 text-center"
               >
@@ -195,12 +195,12 @@
     @apply text-primary-50 font-garamond;
   }
   .card-title {
-    @apply card text-3xl;
-  }
-  .card-body {
-    @apply card text-base;
+    @apply card text-3xl lg:text-4xl;
   }
   .card-subtitle {
-    @apply card font-semibold text-xl;
+    @apply card font-semibold text-xl lg:text-2xl;
+  }
+  .card-body {
+    @apply card text-base lg:text-lg;
   }
 </style>

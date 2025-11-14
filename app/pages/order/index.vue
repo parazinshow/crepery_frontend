@@ -41,7 +41,7 @@
                   {{ section.title }}
                 </h2>
 
-                <!-- Lista de itens -->
+                <!-- MENU ITEM -->
                 <div class="divide-y">
                   <div
                     v-for="item in section.items"
@@ -49,7 +49,7 @@
                     class="py-4 flex items-center gap-4"
                   >
                     <img
-                      :src="item.image_url || placeholder"
+                      :src="item.image_url || '/images/no-photo-item.png'"
                       class="w-20 h-20 rounded-lg object-contain"
                     />
 
@@ -322,7 +322,7 @@ const specialRequest = ref("")
 
 // Placeholder para itens sem imagem
 const placeholder =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
+  ''
 
 
 // ================================================================
