@@ -61,6 +61,11 @@
                   }}
                 </p>
               </div>
+              <!-- SPECIAL REQUEST (if exists) -->
+              <div v-if="it.specialRequest" class="ml-4 mt-1 text-sm text-gray-800 bg-yellow-50 border-l-4 border-yellow-400 px-2 py-1 rounded">
+                <b>Note:</b> {{ it.specialRequest }}
+              </div>
+
             </div>
 
             <!-- 💰 Preço com soma dos addons -->

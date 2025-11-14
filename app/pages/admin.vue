@@ -212,6 +212,15 @@ function logout() {
                       : addon
                   }}
                 </p>
+
+                <!-- Special Request -->
+                <p
+                  v-if="item.specialRequest"
+                  class="text-sm ml-4 mt-1 text-gray-800 bg-yellow-50 border-l-4 border-yellow-400 px-2 py-1 rounded"
+                >
+                  <b>Note:</b> {{ item.specialRequest }}
+                </p>
+
               </li>
             </ul>
 

@@ -83,7 +83,7 @@ export default defineEventHandler(async (event) => {
       console.warn('⚠️ Falha ao mapear toppings:', err)
     }
 
-    // 💰 Soma o valor dos addons no total e cria line_items adicionais
+    // Soma o valor dos addons no total e cria line_items adicionais
     let addonsTotalCents = 0
     const addonLineItems = []
 
@@ -153,15 +153,36 @@ export default defineEventHandler(async (event) => {
 
     // 5️⃣ Cria um pedido (Order) na Square
     //    Inclui toppings como line_items separados (sem applied_money)
-    const baseLineItems = verifiedItems.map((i) => ({
-      name: i.name,
-      quantity: String(i.quantity),
-      base_price_money: {
-        amount: i.price_cents,
-        currency: 'USD',
-      },
-      catalog_object_id: i.variationId || undefined,
-    }))
+    //    Inclui special request como note no item principal
+    items.forEach((item, idx) => {
+      item.__index = idx
+    })
+
+    // After validating items, attach same index to verifiedItems
+    verifiedItems.forEach((v, idx) => {
+      v.__index = items[idx].__index
+    })
+
+    // Create base line items including special_request
+    const baseLineItems = verifiedItems.map((v) => {
+      const originalItem = items[v.__index]
+
+      const lineItem = {
+        name: v.name,
+        quantity: String(v.quantity),
+        base_price_money: {
+          amount: v.price_cents,
+          currency: 'USD',
+        },
+        catalog_object_id: v.variationId || undefined,
+      }
+
+      if (originalItem?.special_request?.trim()) {
+        lineItem.note = originalItem.special_request.trim()
+      }
+
+      return lineItem
+    })
 
     const orderPayload = {
       order: {
@@ -250,14 +271,27 @@ export default defineEventHandler(async (event) => {
     // gera número diário pro OrderNumber
     const { nextNumber, today } = await getDailyOrderNumber()
 
-    const enrichedItems = verifiedItems.map((i) => {
-      const addonNames = (items.find(x => x.id === i.id)?.addons || [])
-        .map(id => toppingMap.get(id)?.name || id)
+    // Prepara os itens para salvar no banco (adiciona specialRequest e addons como string)
+    const enrichedItems = verifiedItems.map((v) => {
+      // 🔗 Mesma lógica que usamos em baseLineItems:
+      // v.__index aponta pro item original enviado do frontend
+      const originalItem = items[v.__index]
+
+      // addons enviados pelo front podem ser objetos ou IDs
+      const addonNames = (originalItem?.addons || []).map((addon) => {
+        if (typeof addon === 'object') {
+          return addon.label || addon.name || 'Addon'
+        }
+        // fallback se vier como string (id)
+        return toppingMap.get(addon)?.name || addon
+      })
+
       return {
-        name: i.name,
-        price: i.price_cents,
-        quantity: i.quantity,
+        name: v.name,
+        price: v.price_cents,
+        quantity: v.quantity,
         addons: addonNames.length ? JSON.stringify(addonNames) : null,
+        specialRequest: originalItem?.special_request?.trim() || null,
       }
     })
 
@@ -308,6 +342,7 @@ export default defineEventHandler(async (event) => {
           quantity: i.quantity,
           price_cents: baseCents, // ✅ em centavos, padrão interno
           addons: addonList,
+          special_request: i.specialRequest || null,
         }
       })
 
@@ -323,7 +358,7 @@ export default defineEventHandler(async (event) => {
         taxPercentage,     // ex: 9.4
         subtotal: subtotalWithAddons, // em centavos
         tipAmount: tipCents,
-        total: totalWithTax // em centavos
+        total: totalWithTax, // em centavos
       })
     }
 

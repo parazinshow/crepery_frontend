@@ -25,12 +25,13 @@ model Order {
 }
 
 model OrderItem {
-  id            String   @id @default(cuid())
-  order         Order    @relation(fields: [orderId], references: [id])
-  orderId       String
-  name          String
-  variationId   String?
-  price         Float
-  quantity      Int
-  addons        String? 
+  id              String   @id @default(cuid())
+  order           Order    @relation(fields: [orderId], references: [id])
+  orderId         String
+  name            String
+  variationId     String?
+  price           Float
+  quantity        Int
+  addons          String?
+  specialRequest  String?
 }

@@ -84,6 +84,7 @@ const itemsHtml = items.length
           return `<li style="margin-bottom:8px;">
             ${i.quantity} × ${i.name} — <b>$${(itemTotalCents / 100).toFixed(2)}</b>
             ${addonsHtml ? `<br><span style="color:#555;">${addonsHtml}</span>` : ''}
+            ${i.special_request ? `<br><span style="color:#777;"><b>Note:</b> ${i.special_request}</span>` : ''}
           </li>`
         })
         .join('')

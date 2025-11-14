@@ -249,8 +249,11 @@
           tipAmount: tipAmountCents.value,
           items: cart.value.map((i) => ({
             id: i.id,
+            variationId: i.variationId,
+            lineId: i.lineId,
             quantity: i.quantity,
-            addons: i.addons || [],
+            addons: i.addons?.map(a => a.id) || [],
+            special_request: i.special_request || null,
           })),
         },
       })
