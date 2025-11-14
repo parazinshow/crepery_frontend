@@ -2,33 +2,27 @@
 </script>
 
 <template>
-	<!-- Cabeçalho fixo da página -->
-	<HeaderNav />
+  <HeaderNav />
 
-	<!-- Área principal -->
-	<main
-		class="min-h-[calc(100vh-180px)] background flex items-center justify-center"
-	>
-		<section
-			class="mx-auto p-10 flex flex-col items-center gap-10 w-full max-w-screen-xl"
-		>
-			<!-- Título central da página -->
-			<h1
-				class="page-title text-5xl lg:text-7xl text-center w-full"
-			>
-				Menu
-			</h1>
+  <main class="min-h-[calc(100vh-180px)] background">
+    <section
+      class="mx-auto px-6 py-10 flex flex-col items-center gap-10 w-full max-w-screen-xl h-full"
+    >
+      <h1 class="page-title text-5xl lg:text-7xl text-center">
+        Menu
+      </h1>
 
-			<!-- Imagem logo após o título -->
-			<img
-				src="/images/winter-menu.png"
-				alt="Menu banner"
-				class="w-full h-auto object-contain"
-			/>
-		</section>
-	</main>
+      <div class="w-full flex-1 flex items-center">
+        <img
+          src="/images/winter-menu.png"
+          alt="Winter menu banner"
+          class="w-full max-h-[480px] md:max-h-[600px] object-contain"
+        />
+      </div>
+    </section>
+  </main>
 
-	<Footer />
+  <Footer />
 </template>
 
 <style scoped>

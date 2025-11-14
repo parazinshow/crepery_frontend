@@ -45,10 +45,11 @@ module.exports = {
           900: '#4E2E1E',
         },
       },
-    },
-    fontFamily: {
-      abhaya: ['"Abhaya Libre"', 'serif'],
-      garamond: ['"EB Garamond"', 'serif'],
+      fontFamily: {
+        abhaya: ['"Abhaya Libre"', 'serif'],
+        alice: ['"Alice"', 'serif'],
+        garamond: ['"EB Garamond"', 'serif'],
+      },
     },
   },
   plugins: [require('flowbite/plugin')],

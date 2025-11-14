@@ -23,7 +23,7 @@
 
 	<!-- Área principal da seção "About" -->
 	<main
-		class="min-h-[calc(100vh-180px)] background flex items-center justify-center"
+		class="min-h-[calc(100vh-180px)] background"
 	>
 		<section
 			class="mx-auto p-10 flex flex-col items-center gap-10 w-full max-w-screen-xl"

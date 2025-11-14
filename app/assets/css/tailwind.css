@@ -6,17 +6,11 @@
   .background {
     @apply bg-primary-50;
   }
-	.hero-title {
-		@apply font-garamond font-semibold italic text-primary-50 text-6xl lg:text-8xl drop-shadow-lg
-	}
-	.hero-subtitle {
-		@apply font-garamond text-primary-50 text-xl drop-shadow-md
-	}
   .page-title {
     @apply text-primary-800 font-garamond font-semibold italic;
   }
 	.page-body {
-    @apply text-primary-900 font-abhaya font-semibold text-lg;
+    @apply text-primary-900 font-alice text-lg;
   }
   .modal {
     @apply bg-white rounded-lg shadow-lg;
