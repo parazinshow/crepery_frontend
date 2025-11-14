@@ -105,165 +105,183 @@ function logout() {
     intervalId = null
   }
 }
+
+// Define a cor da borda do ticket com base na idade do pedido
+const ticketColor = (createdAt) => {
+  const age = Date.now() - new Date(createdAt).getTime()
+
+  if (age < 5 * 60 * 1000) return "border-green-300"   // muito recente
+  if (age < 10 * 60 * 1000) return "border-yellow-300" // médio
+  return "border-red-300"                              // muito antigo
+}
+
 </script>
 
 <template>
-  <div class="p-6 max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold mb-6">🧾 Crêperie Panel</h1>
+  <div class="p-6 max-w-6xl mx-auto">
 
-    <!-- Login por PIN -->
-    <div v-if="!isAuthenticated" class="mb-6 space-y-3">
+    <!-- Título -->
+    <h1 class="text-4xl font-bold mb-8 text-gray-800">🥞 Crepe Girl — Online Orders Panel</h1>
+
+    <!-- LOGIN -->
+    <div v-if="!isAuthenticated" class="max-w-sm mx-auto bg-white p-6 shadow-lg rounded-xl space-y-4">
+      <h2 class="text-xl font-semibold text-center">Admin Access</h2>
+
       <input
         v-model="pin"
         type="password"
         maxlength="6"
         placeholder="Enter PIN"
-        class="border px-3 py-2 rounded w-full text-center text-xl tracking-widest font-mono"
+        class="border px-4 py-3 rounded w-full text-center text-xl tracking-widest font-mono bg-gray-50"
       />
 
       <button
         @click="handleLogin"
-        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
+        class="bg-blue-600 text-white w-full py-3 rounded-lg font-semibold hover:bg-blue-700"
       >
         Unlock Panel
       </button>
 
-      <p v-if="loginError" class="text-red-600 text-center">
+      <p v-if="loginError" class="text-red-600 text-center text-sm">
         {{ loginError }}
       </p>
     </div>
 
 
-    <!-- ✅ Painel Admin -->
+    <!-- =============================== -->
+    <!--       PAINEL ADMIN REAL         -->
+    <!-- =============================== -->
+
     <div v-else>
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-semibold">Pending Orders</h2>
+
+      <!-- Top Bar -->
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-2xl font-bold text-gray-700">Pending Orders</h2>
+
         <div class="flex gap-3">
           <button
             @click="refreshMenu"
-            class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
+            class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg shadow"
           >
             🔁 Update Menu
           </button>
+
           <button
             @click="logout"
-            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow"
           >
             Logout
           </button>
         </div>
       </div>
 
-      <!-- ⚠️ Mensagem de erro relacionada a pedidos / sessão expirada -->
-      <p v-if="error" class="text-red-600 mb-4">
-        {{ error }}
-      </p>
+      <!-- Mensagem de erro -->
+      <p v-if="error" class="text-red-600 mb-4 text-lg font-semibold">{{ error }}</p>
 
-      <!-- ⏳ Loading -->
-      <p v-if="loading">Loading orders...</p>
+      <!-- Loading -->
+      <p v-if="loading" class="text-gray-600 text-lg">Loading orders...</p>
 
-      <!-- 📦 Lista de pedidos -->
+
+      <!-- =============================== -->
+      <!--          TICKETS GRID           -->
+      <!-- =============================== -->
       <div v-else>
-        <div v-if="orders.length" class="grid gap-4">
+
+        <div v-if="orders.length"
+             class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
           <div
             v-for="order in orders"
             :key="order.id"
-            class="border rounded-lg p-4 shadow-sm bg-white"
-            :class="{
-              // Fundo levemente verde para pedidos muito recentes (últimos 5 minutos)
-              'bg-green-50':
-                Date.now() - new Date(order.createdAt).getTime() <
-                5 * 60 * 1000,
-            }"
+            class="bg-white shadow-xl p-5 rounded-xl border-2 transition"
+            :class="ticketColor(order.createdAt)"
           >
-            <div class="flex justify-between items-center">
-              <h2 class="font-semibold text-lg">
-                Order #{{ order.dailyNumber }} — {{ order.email }}
+
+            <!-- TOP LINE -->
+            <div class="flex justify-between items-center mb-1">
+              <h2 class="text-xl font-bold">
+                #{{ order.dailyNumber }}
               </h2>
 
               <button
                 @click="handleMarkDone(order.id)"
                 :disabled="loadingDone[order.id]"
-                class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded
-                      disabled:opacity-50 disabled:cursor-not-allowed"
+                class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded-lg disabled:opacity-40"
               >
-                <span v-if="loadingDone[order.id]">⏳ Processing...</span>
-                <span v-else>✅ Done</span>
+                <span v-if="loadingDone[order.id]">⏳...</span>
+                <span v-else>✔ Ready </span>
               </button>
             </div>
 
-            <p class="text-gray-500 text-sm">
-              Created at: {{ new Date(order.createdAt).toLocaleString() }}
-            </p>
+            <p class="text-gray-600 text-sm -mt-1">📧 {{ order.email }}</p>
 
-            <p class="mt-1 text-sm font-semibold">
-              Pickup at: {{ formatPickupTime(order.pickupTime) || 'ASAP' }}
-            </p>
+            <!-- Created & Pickup -->
+            <div class="mt-2">
+              <p class="text-xs text-gray-500">Created: {{ timeAgo(order.createdAt) }}</p>
 
-            <p class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded inline-block">
-              {{ timeAgo(order.createdAt) }}
-            </p>
+              <p class="text-lg font-semibold text-indigo-700">
+               Pickup: {{ formatPickupTime(order.pickupTime) }}
+              </p>
+            </div>
 
 
-            <ul class="mt-3 border-t pt-3 text-gray-700">
+            <!-- ITEMS -->
+            <ul class="mt-4 space-y-3">
               <li
                 v-for="item in order.items"
                 :key="item.id"
-                class="flex flex-col border-b py-2"
+                class="p-3 rounded-lg bg-gray-50 border"
               >
-                <!-- Linha principal com nome e preço -->
                 <div class="flex justify-between items-center">
-                  <span>{{ item.quantity }}x {{ item.name }}</span>
+                  <span class="font-medium">{{ item.quantity }}× {{ item.name }}</span>
+                  <span class="font-semibold">${{ getItemTotal(item).toFixed(2) }}</span>
+                </div>
+
+                <!-- Addons -->
+                <div
+                  v-for="addon in parseAddons(item.addons)"
+                  :key="addon.id || addon"
+                  class="text-sm text-gray-700 ml-3 mt-1"
+                >
                   <span>
-                    ${{ getItemTotal(item).toFixed(2) }}
+                    {{
+                      typeof addon === 'object'
+                        ? `${addon.label || addon.name} ${
+                            addon.price_cents ? `($${(addon.price_cents / 100).toFixed(2)})` : ''
+                          }`
+                        : addon
+                    }}
                   </span>
                 </div>
 
-                <!-- Lista de toppings, se existirem -->
-                <p
-                  v-for="addon in parseAddons(item.addons)"
-                  :key="addon.id || addon"
-                  class="text-sm ml-4 text-gray-700"
-                >
-                  {{
-                    typeof addon === 'object'
-                      ? `${addon.label || addon.name || addon.id} ${
-                          addon.price_cents
-                            ? `($${(addon.price_cents / 100).toFixed(2)})`
-                            : ''
-                        }`
-                      : addon
-                  }}
-                </p>
-
                 <!-- Special Request -->
-                <p
+                <div
                   v-if="item.specialRequest"
-                  class="text-sm ml-4 mt-1 text-gray-800 bg-yellow-50 border-l-4 border-yellow-400 px-2 py-1 rounded"
+                  class="text-sm bg-yellow-50 border-l-4 border-yellow-400 px-3 py-1 mt-2 rounded"
                 >
                   <b>Note:</b> {{ item.specialRequest }}
-                </p>
-
+                </div>
               </li>
             </ul>
 
-            <p class="mt-2 font-semibold">
-              Tip: ${{ ((order.tipAmount || 0) / 100).toFixed(2) }}
+            <!-- Totals -->
+            <p class="mt-4 text-sm text-gray-700">
+              💵 Tip: <b>${{ ((order.tipAmount || 0) / 100).toFixed(2) }}</b>
             </p>
-            <p class="mt-2 font-semibold">
+            <p class="font-bold text-lg text-gray-900">
               Total: ${{ ((order.totalAmount || 0) / 100).toFixed(2) }}
             </p>
           </div>
         </div>
 
-        <!-- 💤 Caso não tenha pedidos -->
-        <p v-else class="text-gray-500 italic">
+        <p v-else class="text-gray-500 italic text-center text-lg">
           No pending orders.
         </p>
       </div>
     </div>
   </div>
 </template>
+
 
 <style scoped>
 /* Estilização básica de fundo da página do painel */
