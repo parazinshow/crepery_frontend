@@ -9,10 +9,21 @@
 
 import { calculateMinPickupMinutes, generatePickupSlots } from '../../utils/pickupTime.js'
 import { getStoreLoad } from '../../utils/getStoreLoad.js'
+import { isStoreOpen } from '../../utils/isStoreOpen.js'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const { items } = body || {}
+  
+  // Verifica se restaurante está aberto AGORA
+  if (!isStoreOpen()) {
+    return {
+      closed: true,
+      message: "We are currently closed.",
+      slots: [],
+      minPickupMinutes: null,
+    }
+  }
 
   if (!items || !Array.isArray(items) || !items.length) {
     throw createError({

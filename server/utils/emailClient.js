@@ -4,13 +4,13 @@ import QRCode from 'qrcode'         // 🔳 Biblioteca para gerar QR Codes em ba
 import { formatPickupTimeServer } from './time.js'
 
 // ========================================================
-// ✉️ E-mail: Order Confirmation
+// E-mail: Order Confirmation
 // --------------------------------------------------------
 // Função principal que envia o e-mail de confirmação de pedido
 // ========================================================
 
 
-  // ✉️ Configura o transporte SMTP para envio de e-mail
+  // Configura o transporte SMTP para envio de e-mail
   // Aqui usa variáveis de ambiente (EMAIL_USER, EMAIL_PASS, etc.)
   // Caso o usuário use Gmail, as configs padrão já funcionam
   const transporter = nodemailer.createTransport({
@@ -25,25 +25,27 @@ import { formatPickupTimeServer } from './time.js'
 
 export async function sendOrderConfirmationEmail({ to, orderId, orderNumber, pickupTime, receiptUrl, items = [], taxAmount
   ,taxPercentage,subtotal, tipAmount = 0,total }) {
-  // 🚨 Garante que o e-mail de destino foi informado
+  // Garante que o e-mail de destino foi informado
   if (!to) throw new Error('Missing destination email address')
 
-  // 🔗 Cria o link direto do pedido no site (será incluído no QR e no botão do e-mail)
-  const orderUrl = `http://localhost:3000/order/${orderId}`
+  const BASE_URL = process.env.PUBLIC_BASE_URL || 'http://localhost:3000'
 
-  // 🧾 Gera o QR Code em formato base64 que aponta para o link do pedido
+  // Cria o link direto do pedido no site (será incluído no QR e no botão do e-mail)
+  const orderUrl = `${BASE_URL}/order/${orderId}`
+
+  // Gera o QR Code em formato base64 que aponta para o link do pedido
   const qrCode = await QRCode.toDataURL(orderUrl)
 
-  // ⏰ Formata o tempo de pickup para exibição no e-mail
+  // Formata o tempo de pickup para exibição no e-mail
   const formattedPickupTime = formatPickupTimeServer(pickupTime)
 
-  // 💳 Monta a seção de recibo Square, se disponível
+  // Monta a seção de recibo Square, se disponível
   // Se o pedido estiver no sandbox, mostra aviso em vez do link
   const receiptSection = receiptUrl
     ? `<p><a href="${receiptUrl}" target="_blank" style="color:#2563eb;text-decoration:none;font-weight:bold;">View Square receipt →</a></p>`
     : `<p style="color:#777;font-size:13px;">Receipt not available in sandbox mode.</p>`
 
-  // 🧁 Monta a lista de itens do pedido
+  // Monta a lista de itens do pedido
   // Cria uma <ul> com cada item em <li>, mostrando nome, quantidade e preço formatado
   // Se não houver itens, mostra um texto “No items found.”
 const itemsHtml = items.length
@@ -58,7 +60,7 @@ const itemsHtml = items.length
                 try { return JSON.parse(i.addons || '[]') } catch { return [] }
               })()
 
-          // ✅ Sempre tratar como centavos (mantendo consistência com o backend e DB)
+          // Sempre tratar como centavos (mantendo consistência com o backend e DB)
           const basePriceCents = Number(i.price_cents || i.price || 0)
 
           // Soma o preço dos toppings (também em centavos)
@@ -102,7 +104,7 @@ const itemsHtml = items.length
         .join('')
 
       // =====================================================================
-      // 🔵 Cálculo dos valores monetários mostrados abaixo
+      // Cálculo dos valores monetários mostrados abaixo
       // ---------------------------------------------------------------------
       // Aqui estamos formatando:
       // - Subtotal (base + addons)
@@ -121,7 +123,7 @@ const itemsHtml = items.length
       const totalDollars = (total / 100).toFixed(2)
 
       // ===============================================
-      // 🧾 Seção de resumo (subtotal + tax + total final)
+      // Seção de resumo (subtotal + tax + total final)
       // ===============================================
       const totalsHtml = `
         <p style="margin-top:14px;font-size:15px;">
@@ -133,7 +135,7 @@ const itemsHtml = items.length
       `
 
       // ===============================================
-      // 🔄 Retorno final da lista de itens + resumo
+      // Retorno final da lista de itens + resumo
       // ===============================================
       return `
         <ul style="padding-left:15px;margin-top:10px;">
@@ -145,7 +147,7 @@ const itemsHtml = items.length
   : `<p>No items found.</p>`
 
 
-  // 🧠 Monta o corpo HTML completo do e-mail
+  // Monta o corpo HTML completo do e-mail
   // Inclui título, mensagem de agradecimento, tempo de preparo, lista de itens,
   // QR Code embutido (com CID), botão para visualizar o pedido e recibo opcional
   const htmlContent = `
@@ -176,7 +178,7 @@ const itemsHtml = items.length
     </div>
   `
 
-  // 🚀 Envia o e-mail com o conteúdo montado e o QR Code embutido
+  // Envia o e-mail com o conteúdo montado e o QR Code embutido
   // O QR é enviado como attachment base64 com um CID (Content ID)
   // Isso permite referenciá-lo dentro do HTML como <img src="cid:qrcodeimg">
   await transporter.sendMail({
@@ -196,13 +198,13 @@ const itemsHtml = items.length
 }
 
 // ========================================================
-// ✉️ E-mail: Order Ready for Pickup
+// E-mail: Order Ready for Pickup
 // --------------------------------------------------------
 // Enviado quando o admin marca o pedido como DONE
 // ========================================================
 
 export async function sendPickupReadyEmail({ to, orderNumber, items }) {
-  // 🧾 Lista simples dos itens no email
+  // Lista simples dos itens no email
 const itemsList = items
   .map(i => {
     const addons = i.addons ? JSON.parse(i.addons) : []
@@ -249,7 +251,7 @@ const itemsList = items
     Thank you again for choosing The Crêpe Girl — enjoy your treat! 💛</p>
   `
 
-  // 🚀 Envia o e-mail usando o transporter
+  // Envia o e-mail usando o transporter
   await transporter.sendMail({
     from: `"The Crêpe Girl" <${process.env.EMAIL_USER}>`,
     to,

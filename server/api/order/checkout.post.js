@@ -11,6 +11,7 @@ import { getSquareConfig } from '../../utils/squareClient.js'          // 🔧 C
 import { sendOrderConfirmationEmail } from '../../utils/emailClient.js' // ✉️ Função que envia o e-mail de confirmação
 import prisma from '../../utils/db.js'                                 // 🧱 Cliente Prisma (SQLite)
 import { validateSquareItems } from '../../utils/validateSquareItems.js' // ✅ Valida itens direto no catálogo da Square
+import { isStoreOpen } from '../../utils/isStoreOpen.js'                     // ⏰ Verifica se a loja está aberta
 
 // Cache path para ler a tax
 import { promises as fs } from 'fs'
@@ -19,6 +20,15 @@ const CACHE_PATH = path.resolve('./server/cache/catalog.json')
 
 export default defineEventHandler(async (event) => {
   try {
+
+    //  Bloqueia pedidos fora do horário de funcionamento
+    if (!isStoreOpen()) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'We are currently closed. Pickup is only available Wed–Sun, 8:30am to 4:30pm.',
+      })
+    }
+
     // 1️⃣ Lê o corpo da requisição enviada pelo frontend
     //    Contém sourceId (token do cartão), email e itens selecionados.
     const body = await readBody(event)
@@ -45,7 +55,7 @@ export default defineEventHandler(async (event) => {
 
     const { verifiedItems, verifiedTotal } = validation // verifiedTotal em centavos
 
-    // 🕒 PICKUP: calcula mínimo e slots válidos com base nos verifiedItems
+    // PICKUP: calcula mínimo e slots válidos com base nos verifiedItems
     const minPickupMinutes = await calculateMinPickupMinutes(verifiedItems)
     const validPickupSlots = generatePickupSlots(minPickupMinutes)
 
