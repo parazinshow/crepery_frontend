@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-11-13T19:58:24.420Z",
+  "timestamp": "2025-11-14T21:05:24.741Z",
   "data": {
     "tax": {
       "id": "EX2BKFSR4DTWPTV2MY2XGHGR",
@@ -35,6 +35,21 @@
               "id": "567EOGMHQT3I2MRK6VQTCWIJ",
               "name": "Regular",
               "price_cents": 900,
+              "currency": "USD"
+            }
+          ],
+          "image_url": null
+        },
+        {
+          "id": "D3AAJFE5XSALOXZ3GE3JTBYH",
+          "name": "Butter & Cream & Nutella",
+          "description": "",
+          "image_ids": [],
+          "variations": [
+            {
+              "id": "XOT6HYCKXMGK6QS5JQZODTGD",
+              "name": "Regular",
+              "price_cents": 1000,
               "currency": "USD"
             }
           ],

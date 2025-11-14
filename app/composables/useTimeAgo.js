@@ -22,11 +22,11 @@ export function useTimeAgo() {
   function timeAgo(date) {
     const diff = (Date.now() - new Date(date).getTime()) / 1000 // diferença em segundos
 
-    if (diff < 60) return `${Math.floor(diff)}s before`
-    if (diff < 3600) return `${Math.floor(diff / 60)}min before`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h before`
+    if (diff < 60) return `${Math.floor(diff)}s ago`
+    if (diff < 3600) return `${Math.floor(diff / 60)}min ago`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
 
-    return `${Math.floor(diff / 86400)}d before`
+    return `${Math.floor(diff / 86400)}d ago`
   }
 
   return { timeAgo }

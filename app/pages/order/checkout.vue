@@ -1,7 +1,7 @@
 <script setup>
-  import { onMounted, ref, computed, watch } from 'vue'
-  import { useToast } from '~/composables/useToast'
-  
+  import {onMounted, ref, computed, watch, nextTick} from 'vue'
+  import {useToast} from '~/composables/useToast'
+
   /* --------------------------------------------------------
     ESTADOS REATIVOS
   ----------------------------------------------------------- */
@@ -13,13 +13,13 @@
   const messageClass = ref('') // classe de cor dinâmica para mensagens
   const loading = ref(false) // estado de carregamento durante o pagamento
   const taxRate = ref(0) // porcentagem de tax aplicada
-  const tipType = ref(null)            // "15", "18", "20", "custom"
-  const tipCustom = ref('')            // valor custom (em dólares)
-  const pickupTime = ref('')          // horário escolhido pelo cliente ("HH:MM")
-  const pickupSlots = ref([])         // lista de horários disponíveis
-  const minPickupMinutes = ref(null)  // só pra mostrar texto tipo "mínimo 15 min"
-  const storeClosed = ref(false)      // indica se a loja está fechada
-
+  const tipType = ref(null) // "15", "18", "20", "custom"
+  const tipCustom = ref('') // valor custom (em dólares)
+  const customTipMode = ref('amount') // 'amount' (valor em $) ou 'percent' (valor em %)
+  const pickupTime = ref('') // horário escolhido pelo cliente ("HH:MM")
+  const pickupSlots = ref([]) // lista de horários disponíveis
+  const minPickupMinutes = ref(null) // só pra mostrar texto tipo "mínimo 15 min"
+  const storeClosed = ref(false) // indica se a loja está fechada
 
   // Referências para elementos HTML e instâncias Square
   const cardContainer = ref(null) // container do input de cartão
@@ -63,12 +63,21 @@
 
     // Custom tip digitado pelo usuário
     if (tipType.value === 'custom') {
-      const dollars = parseFloat(tipCustom.value || 0)
-      return Math.round(dollars * 100)
+      const raw = parseFloat(tipCustom.value || '0')
+      if (isNaN(raw) || raw <= 0) return 0
+
+      // Valor fixo em dólares
+      if (customTipMode.value === 'amount') {
+        return Math.round(raw * 100)
+      }
+
+      // Valor em porcentagem
+      return Math.round(subtotal.value * (raw / 100))
     }
 
-    // Tip percentual (ex: 15, 18, 20)
+    // Tip percentual fixa (ex: 15, 18, 20)
     const percent = Number(tipType.value)
+    if (!percent || percent <= 0) return 0
     return Math.round(subtotal.value * (percent / 100))
   })
 
@@ -84,6 +93,33 @@
   const totalWithTax = computed(
     () => subtotal.value + taxAmount.value + tipAmountCents.value
   )
+
+  /* --------------------------------------------------------
+  Funções auxiliares para seleção de gorjeta
+----------------------------------------------------------- */
+  const toggleTipPercentage = (p) => {
+    const value = String(p)
+    // Se já estiver selecionado, volta para o default (0)
+    if (tipType.value === value) {
+      tipType.value = null
+    } else {
+      tipType.value = value
+    }
+    // Sempre limpa custom quando usa botões fixos
+    tipCustom.value = ''
+  }
+
+  const toggleCustomTip = () => {
+    if (tipType.value === 'custom') {
+      // Clicou de novo em "Custom" → volta pro default (0)
+      tipType.value = null
+      tipCustom.value = ''
+    } else {
+      tipType.value = 'custom'
+      // Sempre que entrar em custom, começa como valor em dólares
+      customTipMode.value = 'amount'
+    }
+  }
 
   /* --------------------------------------------------------
     onMounted — Inicializa carrinho e Square Payments
@@ -176,9 +212,8 @@
 
       loadPickupSlots()
     },
-    { deep: true }
+    {deep: true}
   )
-
 
   // Calcula o preço total dos addons de um item do carrinho
   function getAddonsPriceCents(cartItem) {
@@ -226,7 +261,7 @@
     } catch (err) {
       console.error('Failed to load pickup slots', err)
     }
-}
+  }
 
   /* --------------------------------------------------------
     Validação de e-mail
@@ -308,12 +343,15 @@
 
     // bloqueia pedido se a loja estiver fechada
     if (storeClosed.value) {
-      showToast("We are currently closed. Pickup is only available Wed–Sun, 8:30am to 4:30pm.", "error")
+      showToast(
+        'We are currently closed. Pickup is only available Wed–Sun, 8:30am to 4:30pm.',
+        'error'
+      )
       return
     }
     // 🕒 exige que tenha um pickupTime válido
     if (!pickupTime.value) {
-      showToast("Please select a pickup time.", "error")
+      showToast('Please select a pickup time.', 'error')
       return
     }
 
@@ -352,7 +390,7 @@
       } else {
         const msg =
           response.statusMessage || // erros enviados com createError()
-          response.message ||      // mensagens normais
+          response.message || // mensagens normais
           'Payment not authorized.'
 
         showToast(msg, 'error')
@@ -360,9 +398,9 @@
     } catch (err) {
       // Aqui trata createError do backend
       const msg =
-        err?.data?.statusMessage ||  // Nuxt 3 devolve assim
-        err?.data?.message ||        // fallback
-        err?.statusMessage ||        // outro formato possível
+        err?.data?.statusMessage || // Nuxt 3 devolve assim
+        err?.data?.message || // fallback
+        err?.statusMessage || // outro formato possível
         'An unexpected error occurred.'
 
       showToast(msg, 'error')
@@ -378,227 +416,319 @@
 </script>
 
 <template>
-  <div
-    v-if="paymentSuccess"
-    class="bg-green-600 text-white text-center py-2 font-semibold animate-fade"
-  >
-    Payment successful! Redirecting...
-  </div>
-  <div
-    class="max-w-md mx-auto mt-10 bg-white p-6 rounded-lg shadow-lg space-y-6"
-  >
-    <div class="flex justify-between items-center">
-      <h2 class="text-2xl font-semibold text-center flex-1">Checkout</h2>
-      <button
-        @click="goBack"
-        class="text-sm text-blue-600 hover:underline font-medium"
-      >
-        ← Back to Menu
-      </button>
-    </div>
+  <HeaderNav />
+  <ClientOnly>
+    <!-- MAIN CONTENT -->
+    <section class="background w-full min-h-[calc(100vh-180px)]">
+      <div class="flex flex-col max-w-7xl mx-auto p-6 gap-6 items-center">
+        <h1 class="page-title text-5xl lg:text-7xl text-center">Checkout</h1>
+        <!-- GRID PRINCIPAL: ESQUERDA MENU / DIREITA CARRINHO -->
+        <div
+          v-if="!storeClosed && cart.length"
+          class="grid grid-cols-1 lg:grid-cols-12 items-start page-body"
+        >
+          <!-- GRID ESQUERDA -->
+          <div class="lg:col-span-6 lg:px-4 lg:py-2">
+            <!-- RESUMO DO CARRINHO -->
+            <div class="grid grid-cols-3 pb-2">
+              <div class="col-span-1">
+                <button
+                  @click="goBack()"
+                  v-if="cart.length"
+                  class="tooltip-button p-2"
+                  title="Go Back"
+                >
+                  ← <span class="ml-2">Back to Order</span>
+                </button>
+              </div>
+              <div>
+                <h3 class="col-span-1 text-2xl font-bold mb-2 text-center">
+                  Your cart
+                </h3>
+              </div>
+              <div class="col-span-1 text-right"></div>
+            </div>
 
-    <!-- Resumo do carrinho -->
-    <div v-if="cart.length" class="divide-y divide-gray-200">
-      <!-- Item do carrinho -->
-      <div
-        v-for="item in cart"
-        :key="item.id"
-        class="py-2 flex justify-between items-center"
-      >
-        <div>
-          <p class="font-semibold">
-            <span>{{ item.quantity }} x {{ item.name }}</span>
-            <!-- Individual price -->
-            <span class="ml-4 text-gray-500">
-              (${{
-                (
-                  (item.price_cents || item.variations?.[0]?.price_cents) / 100
-                ).toFixed(2)
-              }})
-            </span>
-          </p>
+            <!-- CART ITEMS -->
+            <div v-if="cart.length" class="divide-y divide-primary-300">
+              <div
+                v-for="item in cart"
+                :key="item.id"
+                class="py-2 flex justify-between items-center gap-1"
+              >
+                <div>
+                  <p class="text-xl">
+                    <span>{{ item.quantity }} x {{ item.name }}</span>
+                    <!-- Individual price -->
+                    <span>
+                      (${{
+                        (
+                          (item.price_cents ||
+                            item.variations?.[0]?.price_cents) / 100
+                        ).toFixed(2)
+                      }})
+                    </span>
+                  </p>
+                  <!-- Preco dos addons -->
+                  <span class="text-base text-primary-500">
+                    <div
+                      v-for="addon in item.addons"
+                      :key="addon.id"
+                      class="ml-5"
+                    >
+                      <p>
+                        {{ addon.label }} (${{
+                          ((addon.price_cents || 0) / 100).toFixed(2)
+                        }})
+                      </p>
+                    </div>
+                    <p v-if="item.special_request" class="ml-5">
+                        <b>Special request:</b> {{ item.special_request }}
+                      </p>
+                  </span>
+                </div>
 
-          <!-- Preco dos addons -->
-          <span class="text-sm text-gray-500">
-            <div
-              v-for="addon in item.addons"
-              :key="addon.id"
-              class="py-2 flex justify-between items-center"
-            >
-              <p>
-                {{ addon.label }} (${{
-                  ((addon.price_cents || 0) / 100).toFixed(2)
-                }})
+                <!-- Preco total dos itens similares -->
+                <p class="font-semibold">
+                  ${{
+                    (
+                      ((item.price_cents + getAddonsPriceCents(item) ||
+                        item.variations?.[0]?.price_cents +
+                          getAddonsPriceCents(item)) *
+                        item.quantity) /
+                      100
+                    ).toFixed(2)
+                  }}
+                </p>
+              </div>
+            </div>
+
+            <div v-if="cart.length" class="text-center">
+              {{ cart.length }} items
+            </div>
+          </div>
+
+          <!-- DIVIDER -->
+          <div
+            class="hidden lg:block col-span-1 h-full flex justify-center w-px bg-primary-300 mx-auto"
+          ></div>
+
+          <!-- GRID DIREITA -->
+          <div
+            class="flex flex-col mt-10 pt-4 border-t border-primary-300 lg:border-none lg:m-0 lg:col-span-5 lg:px-4 lg:py-2"
+          >
+            <!-- Tip Selection -->
+            <div class="space-y-1 mb-6">
+              <p class="text-sm">Add a Tip</p>
+
+              <!-- Tip buttons -->
+              <div class="grid grid-cols-4 gap-2">
+                <button
+                  v-for="p in [15, 18, 20]"
+                  :key="p"
+                  type="button"
+                  @click="toggleTipPercentage(p)"
+                  :class="[
+                    'tip-button ',
+                    tipType === String(p)
+                      ? '!bg-primary-800 !text-white'
+                      : 'bg-transparent',
+                  ]"
+                >
+                  {{ p }}%
+                </button>
+
+                <!-- Custom button -->
+                <button
+                  type="button"
+                  @click="toggleCustomTip()"
+                  :class="[
+                    'tip-button',
+                    tipType === 'custom'
+                      ? '!bg-primary-800 !text-white'
+                      : 'bg-transparent',
+                  ]"
+                >
+                  Custom
+                </button>
+              </div>
+
+              <!-- Custom tip input -->
+              <div v-if="tipType === 'custom'" class="mt-2">
+                <div class="flex items-center gap-2">
+                  <!-- Toggle between $ and % -->
+                  <div class="flex gap-2">
+                    <button
+                      type="button"
+                      @click="customTipMode = 'amount'"
+                      :class="[
+                        'tip-button px-4',
+                        customTipMode === 'amount'
+                          ? '!bg-primary-800 !text-white'
+                          : 'bg-transparent',
+                      ]"
+                    >
+                      $
+                    </button>
+
+                    <button
+                      type="button"
+                      @click="customTipMode = 'percent'"
+                      :class="[
+                        'tip-button px-4',
+                        customTipMode === 'percent'
+                          ? '!bg-primary-800 !text-white'
+                          : 'bg-transparent',
+                      ]"
+                    >
+                      %
+                    </button>
+                  </div>
+
+                  <!-- Input -->
+                  <input
+                    v-model="tipCustom"
+                    type="number"
+                    min="0"
+                    step="1"
+                    :placeholder="
+                      customTipMode === 'amount'
+                        ? 'Enter amount (e.g. 3.00)'
+                        : 'Enter percentage (e.g. 12.5)'
+                    "
+                    class="flex-1 border border-gray-300 p-2 rounded-lg"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="text-2xl space-y-2">
+              <div class="flex justify-between">
+                <span>Subtotal:</span>
+                <span
+                  ><b>${{ (subtotal / 100).toFixed(2) }}</b></span
+                >
+              </div>
+
+              <div class="flex justify-between">
+                <span>Tax ({{ taxRate.toFixed(2) }}%):</span>
+                <span
+                  ><b>${{ (taxAmount / 100).toFixed(2) }}</b></span
+                >
+              </div>
+
+              <div class="flex justify-between">
+                <span>Tip:</span>
+                <b>
+                  <span v-if="tipAmountCents"
+                    >${{ (tipAmountCents / 100).toFixed(2) }}</span
+                  >
+                  <span v-else>None</span>
+                </b>
+              </div>
+
+              <div class="flex justify-between border-t border-primary-500">
+                <span>Total:</span>
+                <span
+                  ><b>${{ (totalWithTax / 100).toFixed(2) }}</b></span
+                >
+              </div>
+            </div>
+            <div class="my-6">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Pickup time
+              </label>
+
+              <select
+                v-model="pickupTime"
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option disabled value="">Select a pickup time</option>
+                <option v-for="slot in pickupSlots" :key="slot" :value="slot">
+                  {{ slot }}
+                </option>
+              </select>
+
+              <p
+                v-if="minPickupMinutes !== null"
+                class="text-xs text-gray-500 mt-1"
+              >
+                Minimum pickup time: {{ minPickupMinutes }} minutes from now
+                (may increase if the kitchen is busy).
               </p>
             </div>
-          </span>
+
+            <!-- Campo de email -->
+            <div class="mb-6">
+              <label
+                for="email"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >E-mail</label
+              >
+              <input
+                v-model="email"
+                id="email"
+                type="email"
+                required
+                placeholder="Enter your email"
+                class="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <!-- Métodos de pagamento -->
+            <div>
+              <button
+                v-if="appleAvailable"
+                ref="appleButton"
+                class="w-full bg-black text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
+                @click="handleApplePay"
+              >
+                <span></span> Pay with Apple Pay
+              </button>
+
+              <button
+                v-if="googleAvailable"
+                ref="googleButton"
+                class="w-full bg-[#4285F4] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
+                @click="handleGooglePay"
+              >
+                <span class="text-lg">G</span> Pay with Google Pay
+              </button>
+
+              <div
+                v-if="!appleAvailable && !googleAvailable"
+                ref="cardContainer"
+                class="border border-gray-300 p-3 rounded-lg"
+              ></div>
+
+              <button
+                v-if="!appleAvailable && !googleAvailable"
+                class="mt-6 py-1 w-full default-button disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="loading || !email"
+                @click="handlePay"
+              >
+                {{ loading ? 'Processing...' : 'Pay' }}
+              </button>
+            </div>
+          </div>
         </div>
-
-        <!-- Preco total dos itens similares -->
-        <p class="font-semibold">
-          ${{
-            (
-              ((item.price_cents + getAddonsPriceCents(item) ||
-                item.variations?.[0]?.price_cents + getAddonsPriceCents(item)) *
-                item.quantity) /
-              100
-            ).toFixed(2)
-          }}
-        </p>
-      </div>
-
-      <!--  Limpar carrinho -->
-      <div class="text-right pt-3">
-        <button
-          @click="clearCart"
-          class="text-sm text-red-600 hover:text-red-800 font-medium underline"
+        <div
+          v-else-if="storeClosed"
+          class="page-body flex flex-col justify-center text-center"
         >
-          Empty Cart
-        </button>
+          <span>Our store is closed.</span><span>Try again another time.</span>
+        </div>
+        <div v-else class="page-body flex flex-col justify-center text-center">
+          <span>Empty cart.</span><span>No items to checkout.</span>
+        </div>
       </div>
-    </div>
+    </section>
+  </ClientOnly>
 
-    <div class="text-center text-lg font-semibold mb-3 pt-3 space-y-1">
-      <div>Subtotal: ${{ (subtotal / 100).toFixed(2) }}</div>
-      <div>
-        Tax ({{ taxRate.toFixed(2) }}%): ${{ (taxAmount / 100).toFixed(2) }}
-      </div>
-      <div>Tip: ${{ (tipAmountCents / 100).toFixed(2) }}</div>
-      <div class="font-bold text-green-700">
-        Total: ${{ (totalWithTax / 100).toFixed(2) }}
-      </div>
-    </div>
-
-    <!-- Tip Selection -->
-    <div class="space-y-3 mt-4">
-      <label class="text-sm font-medium text-gray-700">Add a Tip</label>
-
-      <!-- Tip buttons -->
-      <div class="grid grid-cols-4 gap-2">
-        <button
-          v-for="p in [15, 18, 20]"
-          :key="p"
-          @click="tipType = String(p)"
-          :class="[
-            'py-2 rounded-lg border text-center font-medium transition',
-            tipType === String(p)
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-700 border-gray-300',
-          ]"
-        >
-          {{ p }}%
-        </button>
-
-        <!-- custom button -->
-        <button
-          @click="tipType = 'custom'"
-          :class="[
-            'py-2 rounded-lg border text-center font-medium transition',
-            tipType === 'custom'
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-700 border-gray-300',
-          ]"
-        >
-          Custom
-        </button>
-      </div>
-
-      <!-- Custom tip input -->
-      <div v-if="tipType === 'custom'" class="mt-2">
-        <input
-          v-model="tipCustom"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="Enter amount (e.g. 3.00)"
-          class="w-full border border-gray-300 p-2 rounded-lg"
-        />
-      </div>
-    </div>
-
-    <!-- Pickup time -->
-    <div v-if="storeClosed" class="p-4 bg-red-100 border border-red-300 text-red-700 rounded">
-      We are currently closed.
-    </div>
-    <div v-else class="mt-4">
-      <label class="block text-sm font-medium text-gray-700 mb-1">
-        Pickup time
-      </label>
-
-      <select
-        v-model="pickupTime"
-        class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option disabled value="">Select a pickup time</option>
-        <option
-          v-for="slot in pickupSlots"
-          :key="slot"
-          :value="slot"
-        >
-          {{ slot }}
-        </option>
-      </select>
-
-      <p v-if="minPickupMinutes !== null" class="text-xs text-gray-500 mt-1">
-        Minimum pickup time: {{ minPickupMinutes }} minutes from now
-        (may increase if the kitchen is busy).
-      </p>
-    </div>
-
-
-    <!-- Campo de email -->
-    <div>
-      <label for="email" class="block text-sm font-medium text-gray-700 mb-1"
-        >E-mail</label
-      >
-      <input
-        v-model="email"
-        id="email"
-        type="email"
-        required
-        placeholder="Enter your email"
-        class="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-
-    <!-- Métodos de pagamento -->
-    <button
-      v-if="appleAvailable"
-      ref="appleButton"
-      class="w-full bg-black text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
-      @click="handleApplePay"
-    >
-      <span></span> Pay with Apple Pay
-    </button>
-
-    <button
-      v-if="googleAvailable"
-      ref="googleButton"
-      class="w-full bg-[#4285F4] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
-      @click="handleGooglePay"
-    >
-      <span class="text-lg">G</span> Pay with Google Pay
-    </button>
-
-    <div
-      v-if="!appleAvailable && !googleAvailable"
-      ref="cardContainer"
-      class="border border-gray-300 p-3 rounded-lg"
-    ></div>
-
-    <button
-      v-if="!appleAvailable && !googleAvailable"
-      class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
-      :disabled="loading || !email"
-      @click="handlePay"
-    >
-      {{ loading ? 'Processing...' : 'Pay' }}
-    </button>
-
-    <p v-if="message" class="text-center text-sm mt-4" :class="messageClass">
-      {{ message }}
-    </p>
-  </div>
+  <Footer />
 </template>
 
-<style></style>
+<style>
+  .tip-button {
+    @apply py-0.5 font-garamond font-semibold rounded-lg border border-primary-300 text-primary-800 hover:bg-primary-300;
+  }
+</style>

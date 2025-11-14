@@ -19,11 +19,13 @@
     @apply font-garamond font-semibold rounded-lg;
   }
   .default-button {
-    @apply button bg-primary-600 text-white hover:bg-primary-800 disabled:bg-primary-300 disabled:hover:bg-primary-300 transition-colors duration-200 ease-in-out;
+    @apply button bg-primary-600 text-white hover:bg-primary-800 disabled:bg-primary-300 disabled:hover:bg-primary-300 transition-colors duration-200 ease-in-out disabled:cursor-not-allowed;
   }
-
   .cancel-button {
     @apply button bg-white text-gray-500 border border-gray-400 hover:bg-gray-100 transition-colors duration-200 ease-in-out;
+  }
+  .tooltip-button {
+    @apply button bg-transparent border border-primary-300 text-primary-800 hover:bg-primary-300;
   }
   .mobile-nav-item {
     @apply py-2 px-3 rounded-lg
