@@ -18,6 +18,7 @@
   const pickupTime = ref('')          // horário escolhido pelo cliente ("HH:MM")
   const pickupSlots = ref([])         // lista de horários disponíveis
   const minPickupMinutes = ref(null)  // só pra mostrar texto tipo "mínimo 15 min"
+  const storeClosed = ref(false)      // indica se a loja está fechada
 
 
   // Referências para elementos HTML e instâncias Square
@@ -190,34 +191,41 @@
 
   // Carrega horários de retirada disponíveis
   async function loadPickupSlots() {
-  if (!cart.value.length) {
-    pickupSlots.value = []
-    pickupTime.value = ''
-    minPickupMinutes.value = null
-    return
-  }
-
-  try {
-    const res = await $fetch('/api/order/pickup-slots', {
-      method: 'POST',
-      body: {
-        // Backend só precisa de quantity
-        items: cart.value.map((i) => ({
-          quantity: i.quantity,
-        })),
-      },
-    })
-
-    pickupSlots.value = res.slots || []
-    minPickupMinutes.value = res.minPickupMinutes ?? null
-
-    // se ainda não escolheu nada, seta o primeiro como padrão
-    if (!pickupTime.value && pickupSlots.value.length) {
-      pickupTime.value = pickupSlots.value[0]
+    if (!cart.value.length) {
+      pickupSlots.value = []
+      pickupTime.value = ''
+      minPickupMinutes.value = null
+      return
     }
-  } catch (err) {
-    console.error('Failed to load pickup slots', err)
-  }
+
+    try {
+      const res = await $fetch('/api/order/pickup-slots', {
+        method: 'POST',
+        body: {
+          // Backend só precisa de quantity
+          items: cart.value.map((i) => ({
+            quantity: i.quantity,
+          })),
+        },
+      })
+
+      // SE A LOJA ESTIVER FECHADA
+      if (res.closed) {
+        storeClosed.value = true
+        return
+      }
+
+      storeClosed.value = false
+      pickupSlots.value = res.slots || []
+      minPickupMinutes.value = res.minPickupMinutes ?? null
+
+      // se ainda não escolheu nada, seta o primeiro como padrão
+      if (!pickupTime.value && pickupSlots.value.length) {
+        pickupTime.value = pickupSlots.value[0]
+      }
+    } catch (err) {
+      console.error('Failed to load pickup slots', err)
+    }
 }
 
   /* --------------------------------------------------------
@@ -298,6 +306,11 @@
       return
     }
 
+    // bloqueia pedido se a loja estiver fechada
+    if (storeClosed.value) {
+      showToast("We are currently closed. Pickup is only available Wed–Sun, 8:30am to 4:30pm.", "error")
+      return
+    }
     // 🕒 exige que tenha um pickupTime válido
     if (!pickupTime.value) {
       showToast("Please select a pickup time.", "error")
@@ -337,11 +350,22 @@
           navigateTo(`/order/${response.payment.id}`)
         }, 1800)
       } else {
-        showToast(response.message || 'Payment not authorized.', 'error')
+        const msg =
+          response.statusMessage || // erros enviados com createError()
+          response.message ||      // mensagens normais
+          'Payment not authorized.'
+
+        showToast(msg, 'error')
       }
     } catch (err) {
-      console.error(err)
-      showToast('Communication error with payment server.', 'error')
+      // Aqui trata createError do backend
+      const msg =
+        err?.data?.statusMessage ||  // Nuxt 3 devolve assim
+        err?.data?.message ||        // fallback
+        err?.statusMessage ||        // outro formato possível
+        'An unexpected error occurred.'
+
+      showToast(msg, 'error')
     }
   }
 
@@ -492,8 +516,11 @@
       </div>
     </div>
 
-    <!-- 🕒 Pickup time -->
-    <div class="mt-4">
+    <!-- Pickup time -->
+    <div v-if="storeClosed" class="p-4 bg-red-100 border border-red-300 text-red-700 rounded">
+      We are currently closed.
+    </div>
+    <div v-else class="mt-4">
       <label class="block text-sm font-medium text-gray-700 mb-1">
         Pickup time
       </label>
