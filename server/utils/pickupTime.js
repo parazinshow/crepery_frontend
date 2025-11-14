@@ -49,19 +49,53 @@ export async function calculateMinPickupMinutes(cartItems = []) {
   return minMinutes
 }
 
+// Horário da loja — Mountain Time
+const OPEN_HOUR = 8
+const OPEN_MIN = 30
+const CLOSE_HOUR = 16
+const CLOSE_MIN = 30
+
+// Dias abertos: 3=Wed, 4=Thu, 5=Fri, 6=Sat, 0=Sun
+const OPEN_DAYS = [3, 4, 5, 6, 0]
+
 /**
- * Gera uma lista de horários de pickup (strings "HH:MM")
- * começando em `minMinutes` a partir de agora, em passos de 5min,
- * por ~90 minutos pra frente (18 slots).
+ * Gera slots em intervalos de 10 minutos respeitando:
+ *  - horário mínimo (minMinutes)
+ *  - horário de funcionamento (8:30 → 16:30)
+ *  - dias de funcionamento (Wed–Sun)
  */
 export function generatePickupSlots(minMinutes) {
   const slots = []
 
   const now = new Date()
+
+  // Verifica se está fechado HOJE
+  const dow = now.getDay()
+  if (!OPEN_DAYS.includes(dow)) {
+    return [] // fechado hoje → nenhum horário
+  }
+
+  // Define horário inicial baseado no mínimo + agora
   const start = new Date(now.getTime() + minMinutes * 60 * 1000)
 
-  for (let i = 0; i < 18; i++) {
-    const slot = new Date(start.getTime() + i * 5 * 60 * 1000)
+  // Força início = no mínimo 8:30
+  const openToday = new Date()
+  openToday.setHours(OPEN_HOUR, OPEN_MIN, 0, 0)
+
+  if (start < openToday) {
+    start.setHours(OPEN_HOUR, OPEN_MIN, 0, 0)
+  }
+
+  // Define limite de fechamento: 16:30
+  const closeToday = new Date()
+  closeToday.setHours(CLOSE_HOUR, CLOSE_MIN, 0, 0)
+
+  // Loop: gerar até 7 slots (70 minutos) mas respeitar horário de fechamento
+  for (let i = 0; i < 7; i++) {
+    const slot = new Date(start.getTime() + i * 10 * 60 * 1000)
+
+    if (slot > closeToday) break // passou do horário → parar
+
     const hh = slot.getHours().toString().padStart(2, '0')
     const mm = slot.getMinutes().toString().padStart(2, '0')
     slots.push(`${hh}:${mm}`)
@@ -69,3 +103,4 @@ export function generatePickupSlots(minMinutes) {
 
   return slots
 }
+
