@@ -312,6 +312,10 @@
  */
 
 import { ref, computed, onMounted, watch } from 'vue'
+import { useToast } from '~/composables/useToast'
+
+// Toast notification
+const { showToast } = useToast()
 
 // Campo do modal: Special Request
 const specialRequest = ref("")
@@ -622,6 +626,9 @@ function addToCart(item, addons = [], request = null) {
     addons: addons_array,
     special_request: request || null,
   })
+
+  // 🔥 toast de item novo
+  showToast(`✔️ ${item.name} added to cart`, "success")
 }
 
 
@@ -631,12 +638,19 @@ function addToCart(item, addons = [], request = null) {
 function removeFromCartByCartItem(cartItem) {
   const idx = cart.value.findIndex(i => i.lineId === cartItem.lineId)
   if (idx === -1) return
-  if (cart.value[idx].quantity > 1) cart.value[idx].quantity--
-  else cart.value.splice(idx, 1)
+
+  if (cart.value[idx].quantity > 1) {
+    cart.value[idx].quantity--
+    showToast(`➖ ${cartItem.name} quantity reduced`, "info")
+  } else {
+    showToast(`🗑️ ${cartItem.name} removed from cart`, "error")
+    cart.value.splice(idx, 1)
+  }
 }
 
 function addFromCartItem(cartItem) {
   cartItem.quantity++
+  showToast(`➕ Added one more ${cartItem.name}`, "info")
 }
 
 
@@ -701,6 +715,8 @@ function confirmCustomization() {
 
     selectedCartItemForCustomization.value.special_request =
       specialRequest.value || null
+
+    showToast(`✏️ ${selectedCartItemForCustomization.value.name} updated`, "info")
   } else if (selectedItemForCustomization.value) {
     // Novo item
     addToCart(

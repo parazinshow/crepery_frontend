@@ -266,7 +266,9 @@
         setTimeout(() => paymentSuccess.value = false, 2000)
         // Limpa carrinho e redireciona
         localStorage.removeItem('crepegirl_cart')
-        setTimeout(() => navigateTo(`/order/${response.payment.id}`), 1300)
+        setTimeout(() => {
+          navigateTo(`/order/${response.payment.id}`)
+        }, 1800)
       } else {
         showToast(response.message || "Payment not authorized.", "error")
       }
