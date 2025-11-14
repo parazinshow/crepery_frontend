@@ -13,9 +13,8 @@ import { useTimeAgo } from '~/composables/useTimeAgo'
 const { timeAgo } = useTimeAgo()
 const { showToast } = useToast()
 
-// Campos de login
-const email = ref('')
-const password = ref('')
+// Campo do PiN de login
+const pin = ref('')
 
 // Erro exibido apenas na área de login
 const loginError = ref('')
@@ -61,17 +60,16 @@ async function handleLogin() {
   loginError.value = ''
 
   try {
-    await login(email.value, password.value)
+    await login(pin.value)
     await loadOrders()
-    showToast('Login completed!', 'success')
-    // Garante que o polling seja iniciado apenas uma vez
+    showToast('Panel unlocked!', 'success')
+
     if (!intervalId) {
       intervalId = setInterval(loadOrders, 30000)
     }
   } catch (err) {
-    console.error('Login error:', err)
-    loginError.value = 'Invalid credentials.'
-    showToast('Fail to login', 'error')
+    loginError.value = 'Invalid PIN.'
+    showToast('Wrong PIN', 'error')
   }
 }
 
@@ -90,32 +88,28 @@ function logout() {
   <div class="p-6 max-w-4xl mx-auto">
     <h1 class="text-3xl font-bold mb-6">🧾 Crêperie Panel</h1>
 
-    <!-- 🔐 Login por e-mail e senha -->
+    <!-- Login por PIN -->
     <div v-if="!isAuthenticated" class="mb-6 space-y-3">
       <input
-        v-model="email"
-        type="email"
-        placeholder="Email"
-        class="border px-3 py-2 rounded w-full"
-      />
-      <input
-        v-model="password"
+        v-model="pin"
         type="password"
-        placeholder="Password"
-        class="border px-3 py-2 rounded w-full"
+        maxlength="6"
+        placeholder="Enter PIN"
+        class="border px-3 py-2 rounded w-full text-center text-xl tracking-widest font-mono"
       />
+
       <button
         @click="handleLogin"
         class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
       >
-        Login
+        Unlock Panel
       </button>
 
-      <!-- Mensagem de erro apenas para problemas de login -->
       <p v-if="loginError" class="text-red-600 text-center">
         {{ loginError }}
       </p>
     </div>
+
 
     <!-- ✅ Painel Admin -->
     <div v-else>

@@ -2,17 +2,23 @@ import jwt from 'jsonwebtoken'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const { email, password } = body
+  const { pin } = body
 
-  // 🔒 credenciais definidas no .env
-  if (
-    email !== process.env.ADMIN_EMAIL ||
-    password !== process.env.ADMIN_PASSWORD
-  ) {
-    throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' })
+  if (!pin) {
+    throw createError({ statusCode: 400, statusMessage: 'PIN is required' })
   }
 
-  // 🔑 cria token JWT com validade de 1 dia
-  const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1d' })
+  // 🔒 PIN definido em .env
+  if (pin !== process.env.ADMIN_PIN) {
+    throw createError({ statusCode: 401, statusMessage: 'Invalid PIN' })
+  }
+
+  // 🔑 cria token JWT com validade maior (30 dias para iPad)
+  const token = jwt.sign(
+    { role: 'admin' },
+    process.env.JWT_SECRET,
+    { expiresIn: '30d' }
+  )
+
   return { token }
 })

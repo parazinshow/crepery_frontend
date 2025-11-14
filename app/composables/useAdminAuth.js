@@ -31,18 +31,17 @@ export function useAdminAuth() {
   const isAuthenticated = computed(() => !!token.value)
 
   // Faz login na API e grava o token retornado
-  async function login(email, password) {
-    // Chamada para o endpoint de login
+  async function login(pin) {
     const res = await $fetch('/api/auth/login', {
       method: 'POST',
-      body: { email, password },
+      body: { pin }
     })
 
-    // Salva o token no estado e no localStorage
-    setToken(res.token)
+    if (!res.token) throw new Error('Invalid PIN')
 
-    // Retorna resposta caso precise de algo a mais no futuro
-    return res
+    token.value = res.token
+    localStorage.setItem('admin_token', res.token)
+    isAuthenticated.value = true
   }
 
   // Atualiza o token em memória e no localStorage
