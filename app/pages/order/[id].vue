@@ -44,21 +44,16 @@
           <p>
             Placed on: <b>{{ placedOn }}</b>
           </p>
+
+          <!-- Hora de retirada (se disponível) -->
           <p>
-            Status: <b>{{ displayOrder.status?.toLowerCase() }}</b>
-          </p>
-        </div>
-        <!-- Hora de retirada (se disponível) -->
-        <div class="text-center mt-2">
-          <p class="font-semibold text-gray-700">
-            🕒 Pickup Time:
+            Pickup Time:
             <ClientOnly>
-              <span class="text-blue-700">
-                {{ formattedPickupTime }}
-              </span>
+                <b>{{ formattedPickupTime }}</b>
             </ClientOnly>
           </p>
         </div>
+
         <!-- Itens do pedido (se houver) -->
         <div v-if="displayOrder.items && displayOrder.items.length">
           <h3 class="text-lg font-semibold border-b border-primary-300 mb-2">

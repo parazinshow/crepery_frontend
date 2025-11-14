@@ -3,12 +3,12 @@
 
   <!-- Evita SSR/CSR mismatch enquanto os dados chegam -->
   <client-only>
-    <section class="background w-full min-h-[calc(100vh-100px)]">
-      <div class="max-w-7xl mx-auto p-6">
+    <section class="background w-full min-h-[calc(100vh-180px)]">
+      <div class="flex flex-col max-w-7xl mx-auto p-6 gap-6">
         <h1 class="page-title text-5xl lg:text-7xl text-center">Menu</h1>
 
         <!-- TOP CATEGORY NAVIGATION -->
-        <div class="flex flex-wrap gap-3 justify-center my-6">
+        <div class="flex flex-wrap gap-3 justify-center">
           <button
             v-for="section in categorizedMenu"
             :key="section.key"
@@ -310,6 +310,8 @@
       </div>
     </section>
   </client-only>
+
+  <Footer />
 </template>
 
 <script setup>
@@ -620,11 +622,12 @@ function addToCart(item, addons = [], request = null) {
 
   // Verifica se já existe item igual (MESMAS addons)
   const found = cart.value.find(i =>
-    i.variationId === variation.id &&
-    addonsEqual(
+    i.variationId === variation.id
+    && addonsEqual(
       (i.addons || []).map(a => a.id),
       normalizedAddons
     )
+    && ((i.special_request || "") === (request || ""))
   )
 
   if (found) {

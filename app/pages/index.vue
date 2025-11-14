@@ -119,8 +119,9 @@
                   <div class="flex flex-col p-4 gap-1">
                     <p class="card-body">333 Bridge Street — Vail 81657 CO</p>
                     <div>
+                      <!-- WE STILL NEED NO UPDATE THE GOOGLE MAPS LOCATION -->
                       <a
-                        href="https://maps.google.com/?q=The+Crepe+Girl+Vail"
+                        href="https://maps.app.goo.gl/KXjJuXvs3rZEnc3FA" 
                         target="_blank"
                         rel="noopener"
                         class="inline-flex items-center gap-2 default-button text-base px-5 py-2"

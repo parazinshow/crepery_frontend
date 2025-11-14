@@ -6,16 +6,9 @@
 	<HeaderNav />
 
 	<!-- Área principal -->
-	<main
-		class="min-h-[calc(100vh-180px)] background"
-	>
-		<section
-			class="mx-auto p-10 flex flex-col items-center gap-10 w-full max-w-screen-xl"
-		>
-			<!-- Título central da página -->
-			<h1
-				class="page-title text-5xl lg:text-7xl text-center w-full"
-			>
+	<main class="background w-full min-h-[calc(100vh-180px)]">
+		<section class="flex flex-col max-w-7xl mx-auto p-6 gap-6 items-center">
+			<h1 class="page-title text-5xl lg:text-7xl text-center">
 				Cakes
 			</h1>
 
