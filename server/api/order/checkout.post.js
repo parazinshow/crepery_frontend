@@ -271,26 +271,52 @@ export default defineEventHandler(async (event) => {
     // gera número diário pro OrderNumber
     const { nextNumber, today } = await getDailyOrderNumber()
 
-    // Prepara os itens para salvar no banco (adiciona specialRequest e addons como string)
+    // Prepara os itens para salvar no banco (adiciona specialRequest e addons completos como JSON)
     const enrichedItems = verifiedItems.map((v) => {
       // 🔗 Mesma lógica que usamos em baseLineItems:
-      // v.__index aponta pro item original enviado do frontend
+      // v.__index aponta para o item original enviado do frontend
       const originalItem = items[v.__index]
 
-      // addons enviados pelo front podem ser objetos ou IDs
-      const addonNames = (originalItem?.addons || []).map((addon) => {
-        if (typeof addon === 'object') {
-          return addon.label || addon.name || 'Addon'
+      /**
+       * ================================================================
+       *  Mantemos os addons COMPLETOS no banco:
+       *  - id
+       *  - label
+       *  - price_cents
+       * 
+       *  Isso garante que:
+       *    ✔ /order/id mostre preço correto
+       *    ✔ /admin mostre "+ Ham ($2.50)"
+       *    ✔ email continue funcionando
+       * ================================================================
+       */
+      const addonsClean = (originalItem?.addons || []).map((addon) => {
+        // Caso addon venha como objeto completo do front
+        if (typeof addon === "object") {
+          return {
+            id: addon.id,
+            label: addon.label || addon.name || "Addon",
+            price_cents: addon.price_cents ?? 0,
+          }
         }
-        // fallback se vier como string (id)
-        return toppingMap.get(addon)?.name || addon
+
+        // Caso addon venha só como ID → consultamos o toppingMap
+        const t = toppingMap.get(addon)
+        return {
+          id: addon,
+          label: t?.name || addon,
+          price_cents: t?.price_cents || 0,
+        }
       })
 
       return {
         name: v.name,
-        price: v.price_cents,
+        price: v.price_cents,          // 💵 preço base em centavos
         quantity: v.quantity,
-        addons: addonNames.length ? JSON.stringify(addonNames) : null,
+        
+        // Salvamos a lista COMPLETA dos addons
+        addons: addonsClean.length ? JSON.stringify(addonsClean) : null,
+
         specialRequest: originalItem?.special_request?.trim() || null,
       }
     })
@@ -321,30 +347,26 @@ export default defineEventHandler(async (event) => {
     if (email) {
       // 🔹 Calcula o preço total de cada item com os toppings incluídos
       const emailItems = enrichedItems.map((i) => {
-        const addonList = i.addons ? JSON.parse(i.addons) : []
+        const addonListRaw = i.addons ? JSON.parse(i.addons) : []
 
-        // Soma o valor de cada topping diretamente pelo map
-        const addonsTotalCents = addonList.reduce((sum, addon) => {
-          // Caso o addon venha como string, tenta achar no toppingMap
-          if (typeof addon === 'string') {
-            const found = [...toppingMap.values()].find(t => t.name === addon)
-            return sum + (found?.price_cents || 0)
-          }
-          // Caso venha como objeto (novo formato)
-          return sum + (addon.price_cents || 0)
-        }, 0)
+        // Agora addons SEMPRE são objetos completos → só copiamos
+        const addonList = addonListRaw.map(a => ({
+          name: a.label || a.name || "Addon",
+          price_cents: a.price_cents ?? 0,
+        }))
 
-        // 💰 Agora calcula total em CENTAVOS corretamente
+        // total base
         const baseCents = Number(i.price || 0)
 
         return {
           name: i.name,
           quantity: i.quantity,
-          price_cents: baseCents, // ✅ em centavos, padrão interno
-          addons: addonList,
+          price_cents: baseCents,
+          addons: addonList,                 // ← Agora sempre objetos
           special_request: i.specialRequest || null,
         }
       })
+
 
       // 🔹 Envia o e-mail com valores 100 % consistentes
       await sendOrderConfirmationEmail({

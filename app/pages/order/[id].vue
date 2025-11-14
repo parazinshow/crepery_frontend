@@ -70,24 +70,9 @@
 
             <!-- 💰 Preço com soma dos addons -->
             <p class="font-medium">
-              ${{
-                (
-                  (
-                    (it.price_cents ?? it.price ?? 0) +
-                    parseAddons(it.addons).reduce(
-                      (sum, a) =>
-                        sum +
-                        (typeof a === 'object'
-                          ? a.price_cents || 0
-                          : 0),
-                      0
-                    )
-                  ) *
-                  it.quantity /
-                  100
-                ).toFixed(2)
-              }}
+              ${{ (getTotalItemCents(it) / 100).toFixed(2) }}
             </p>
+
           </li>
         </ul>
       </div>
@@ -284,6 +269,24 @@ function parseAddons(addons) {
   }
 }
 
+function getBasePriceCents(item) {
+  return Number(item.price || 0)   // sempre em centavos no DB
+}
+
+function getAddonsList(item) {
+  return parseAddons(item.addons)
+}
+
+function getAddonsPriceCents(item) {
+  return getAddonsList(item).reduce(
+    (sum, addon) => sum + Number(addon.price_cents || 0),
+    0
+  )
+}
+
+function getTotalItemCents(item) {
+  return (getBasePriceCents(item) + getAddonsPriceCents(item)) * item.quantity
+}
 
 
 /**

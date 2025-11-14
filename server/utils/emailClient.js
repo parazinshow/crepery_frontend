@@ -68,17 +68,25 @@ const itemsHtml = items.length
             (basePriceCents + addonsTotalCents) * (Number(i.quantity) || 1)
 
           totalCents += itemTotalCents
-
-          // Gera HTML dos toppings
+          
+          // Gera HTML dos toppings (suporta objetos e strings)
           const addonsHtml = addons.length
             ? addons
                 .map((a) => {
-                  const label = a.label || a.name || a.id
+                  // Se addon é string → apenas printa
+                  if (typeof a === 'string') {
+                    return a
+                  }
+
+                  // Se addon é objeto → extrai label e preço
+                  const label = a.label || a.name || a.id || 'Addon'
                   const cents = Number(a.price_cents || a.price || 0)
+
                   return `${label} ($${(cents / 100).toFixed(2)})`
                 })
                 .join('<br>')
             : ''
+
 
           // Renderiza a linha do item
           return `<li style="margin-bottom:8px;">

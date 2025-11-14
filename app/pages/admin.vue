@@ -218,7 +218,6 @@ function logout() {
                   :key="addon.id || addon"
                   class="text-sm ml-4 text-gray-700"
                 >
-                  +
                   {{
                     typeof addon === 'object'
                       ? `${addon.label || addon.name || addon.id} ${
