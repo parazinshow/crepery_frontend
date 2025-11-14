@@ -1,9 +1,9 @@
 <script setup>
   import {onMounted, ref, computed} from 'vue'
-  import { useToast } from '~/composables/useToast'
-  
+  import {useToast} from '~/composables/useToast'
+
   /* --------------------------------------------------------
-   🧠 ESTADOS REATIVOS
+    ESTADOS REATIVOS
   ----------------------------------------------------------- */
 
   // Campos do formulário e controle de interface
@@ -13,8 +13,8 @@
   const messageClass = ref('') // classe de cor dinâmica para mensagens
   const loading = ref(false) // estado de carregamento durante o pagamento
   const taxRate = ref(0) // porcentagem de tax aplicada
-  const tipType = ref(null)            // "15", "18", "20", "custom"
-  const tipCustom = ref('')            // valor custom (em dólares)
+  const tipType = ref(null) // "15", "18", "20", "custom"
+  const tipCustom = ref('') // valor custom (em dólares)
 
   // Referências para elementos HTML e instâncias Square
   const cardContainer = ref(null) // container do input de cartão
@@ -26,10 +26,10 @@
   const paymentSuccess = ref(false) // estado de pagamento bem-sucedido
 
   // instancia o toast
-  const { showToast } = useToast()
+  const {showToast} = useToast()
 
   /* --------------------------------------------------------
-   💰 TOTAL EM CENTAVOS
+    TOTAL EM CENTAVOS
   ----------------------------------------------------------- */
   /**
    * Computed property que soma os preços do carrinho.
@@ -49,7 +49,7 @@
 
   /**
    * Computed property que calcula o valor da gorjeta em centavos.
-   * 
+   *
    */
 
   const tipAmountCents = computed(() => {
@@ -76,23 +76,23 @@
   )
 
   // total final (subtotal + tax + tip)
-  const totalWithTax = computed(() =>
-    subtotal.value + taxAmount.value + tipAmountCents.value
+  const totalWithTax = computed(
+    () => subtotal.value + taxAmount.value + tipAmountCents.value
   )
 
   /* --------------------------------------------------------
-   🚀 onMounted — Inicializa carrinho e Square Payments
+    onMounted — Inicializa carrinho e Square Payments
   ----------------------------------------------------------- */
   onMounted(async () => {
     // Recupera carrinho salvo no navegador
     const savedCart = localStorage.getItem('crepegirl_cart')
     let loaded = savedCart ? JSON.parse(savedCart) : []
 
-    // 🔹 Recupera tax salva no localStorage (ou usa padrão de 9.4%)
+    //  Recupera tax salva no localStorage (ou usa padrão de 9.4%)
     const savedTax = localStorage.getItem('crepegirl_tax_percentage')
     taxRate.value = savedTax ? Number(savedTax) : 9.4
 
-    // 🔸 Limpeza automática de dados inválidos (proteção extra)
+    //  Limpeza automática de dados inválidos (proteção extra)
     loaded = loaded.filter(
       (i) =>
         i?.name &&
@@ -102,7 +102,7 @@
     )
     cart.value = loaded
 
-    // 🔹 Configuração do ambiente e chaves públicas da Square
+    //  Configuração do ambiente e chaves públicas da Square
     const config = useRuntimeConfig()
     const isProd = process.env.NODE_ENV === 'production'
 
@@ -115,11 +115,11 @@
 
     // Verifica se o SDK da Square foi carregado no navegador
     if (!window.Square) {
-      showToast("Square SDK failed to load.", "error")
+      showToast('Square SDK failed to load.', 'error')
       return
     }
 
-    /* 🧾 Inicializa métodos de pagamento */
+    /*  Inicializa métodos de pagamento */
     try {
       // Cria objeto principal de pagamentos Square
       const payments = await window.Square.payments(appId, locationId)
@@ -161,30 +161,30 @@
   }
 
   /* --------------------------------------------------------
-   📧 Validação de e-mail
+    Validação de e-mail
   ----------------------------------------------------------- */
   function validateEmail() {
     const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
     if (!email.value || !emailRegex.test(email.value)) {
-      showToast("Please enter a valid email address.", "error")
+      showToast('Please enter a valid email address.', 'error')
       return false
     }
     return true
   }
 
   /* --------------------------------------------------------
-   🧹 Limpar carrinho manualmente
+    Limpar carrinho manualmente
   ----------------------------------------------------------- */
   function clearCart() {
     if (confirm('Are you sure you want to clean the cart?')) {
       localStorage.removeItem('crepegirl_cart')
       cart.value = []
-      showToast("Cart cleaned successfully.", "success")
+      showToast('Cart cleaned successfully.', 'success')
     }
   }
 
   /* --------------------------------------------------------
-   💳 Fluxo dos métodos de pagamento
+    Fluxo dos métodos de pagamento
   ----------------------------------------------------------- */
 
   // Apple Pay
@@ -223,7 +223,7 @@
   }
 
   /* --------------------------------------------------------
-   🚀 Envio dos dados ao backend (token + itens)
+    Envio dos dados ao backend (token + itens)
   ----------------------------------------------------------- */
 
   /**
@@ -234,7 +234,7 @@
    */
   async function tokenizeAndPay(result) {
     if (result.status !== 'OK') {
-      showToast("Payment validation failed.", "error")
+      showToast('Payment validation failed.', 'error')
       return
     }
 
@@ -252,7 +252,7 @@
             variationId: i.variationId,
             lineId: i.lineId,
             quantity: i.quantity,
-            addons: i.addons?.map(a => a.id) || [],
+            addons: i.addons?.map((a) => a.id) || [],
             special_request: i.special_request || null,
           })),
         },
@@ -260,26 +260,26 @@
 
       // Se tudo deu certo
       if (response.success && response.payment?.status === 'COMPLETED') {
-        showToast("Check your email for confirmation.", "info")
+        showToast('Check your email for confirmation.', 'info')
         // mostra mensagem de pagamento bem-sucedido
         paymentSuccess.value = true
-        setTimeout(() => paymentSuccess.value = false, 2000)
+        setTimeout(() => (paymentSuccess.value = false), 2000)
         // Limpa carrinho e redireciona
         localStorage.removeItem('crepegirl_cart')
         setTimeout(() => {
           navigateTo(`/order/${response.payment.id}`)
         }, 1800)
       } else {
-        showToast(response.message || "Payment not authorized.", "error")
+        showToast(response.message || 'Payment not authorized.', 'error')
       }
     } catch (err) {
       console.error(err)
-      showToast("Communication error with payment server.", "error")
+      showToast('Communication error with payment server.', 'error')
     }
   }
 
   /* --------------------------------------------------------
-   🔙 Voltar ao menu
+    Voltar ao menu
   ----------------------------------------------------------- */
   function goBack() {
     navigateTo('/order')
@@ -287,10 +287,12 @@
 </script>
 
 <template>
-    <div v-if="paymentSuccess"
-     class="bg-green-600 text-white text-center py-2 font-semibold animate-fade">
-      Payment successful! Redirecting...
-    </div>
+  <div
+    v-if="paymentSuccess"
+    class="bg-green-600 text-white text-center py-2 font-semibold animate-fade"
+  >
+    Payment successful! Redirecting...
+  </div>
   <div
     class="max-w-md mx-auto mt-10 bg-white p-6 rounded-lg shadow-lg space-y-6"
   >
@@ -345,7 +347,8 @@
         <p class="font-semibold">
           ${{
             (
-              ((item.price_cents + getAddonsPriceCents(item) || item.variations?.[0]?.price_cents + getAddonsPriceCents(item)) *
+              ((item.price_cents + getAddonsPriceCents(item) ||
+                item.variations?.[0]?.price_cents + getAddonsPriceCents(item)) *
                 item.quantity) /
               100
             ).toFixed(2)
@@ -353,20 +356,22 @@
         </p>
       </div>
 
-      <!-- 🧹 Limpar carrinho -->
+      <!--  Limpar carrinho -->
       <div class="text-right pt-3">
         <button
           @click="clearCart"
           class="text-sm text-red-600 hover:text-red-800 font-medium underline"
         >
-          🧹 Empty Cart
+          Empty Cart
         </button>
       </div>
     </div>
 
     <div class="text-center text-lg font-semibold mb-3 pt-3 space-y-1">
       <div>Subtotal: ${{ (subtotal / 100).toFixed(2) }}</div>
-      <div>Tax ({{ taxRate.toFixed(2) }}%): ${{ (taxAmount / 100).toFixed(2) }}</div>
+      <div>
+        Tax ({{ taxRate.toFixed(2) }}%): ${{ (taxAmount / 100).toFixed(2) }}
+      </div>
       <div>Tip: ${{ (tipAmountCents / 100).toFixed(2) }}</div>
       <div class="font-bold text-green-700">
         Total: ${{ (totalWithTax / 100).toFixed(2) }}
@@ -387,7 +392,7 @@
             'py-2 rounded-lg border text-center font-medium transition',
             tipType === String(p)
               ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-700 border-gray-300'
+              : 'bg-white text-gray-700 border-gray-300',
           ]"
         >
           {{ p }}%
@@ -400,7 +405,7 @@
             'py-2 rounded-lg border text-center font-medium transition',
             tipType === 'custom'
               ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-700 border-gray-300'
+              : 'bg-white text-gray-700 border-gray-300',
           ]"
         >
           Custom
@@ -475,8 +480,4 @@
   </div>
 </template>
 
-<style>
-  body {
-    background-color: #f3f4f6;
-  }
-</style>
+<style></style>

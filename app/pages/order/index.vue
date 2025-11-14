@@ -64,7 +64,7 @@
 
                     <button
                       @click="openCustomizationForNew(item)"
-                      class="h-14 w-14 default-button lg:default-button-desktop"
+                      class="h-14 w-14 default-button"
                     >
                       Add
                     </button>
@@ -80,8 +80,22 @@
           <div class="hidden lg:block col-span-1 h-full flex justify-center w-px bg-primary-300 mx-auto"></div>
           
           <!-- DIREITA: CARRINHO -->
-          <div class="lg:col-span-5 lg:px-4 lg:py-2 flex flex-col">
-            <h3 class="text-xl font-bold mb-2 text-center">Your cart</h3>
+          <div class="flex flex-col mt-14 pt-4 border-t border-primary-300 lg:border-none lg:m-0 lg:col-span-5 lg:px-4 lg:py-2">
+            <div class="grid grid-cols-3">
+              <div class="col-span-1"></div>
+              <h3 class="col-span-1 text-2xl font-bold mb-2 text-center">Your cart</h3>
+              <div class="col-span-1 text-right">
+                <button
+                    @click="clearCart()"
+                    v-if="cart.length"
+                    class="tooltip-button p-2"
+                    title="Clear"
+                  >
+                    Clear cart
+                </button>
+              </div>
+            </div>
+            
 
             <p
               v-if="!loading && cart.length === 0"
@@ -133,8 +147,7 @@
                   </ul>
                   <!-- Special request note -->
                   <div v-if="cartItem.special_request" class="ml-5">
-                    <span class="font-bold text-primary-600">Special Request:</span>
-                    {{ cartItem.special_request }}
+                    <b>Special request:</b> {{ cartItem.special_request }}
                   </div>
                 </div>
 
@@ -191,7 +204,7 @@
                   <button
                     v-if="itemNeedsModal(cartItem)"
                     @click="openCustomizationForExisting(cartItem)"
-                    class="default-button py-1 px-4 lg:default-button-desktop"
+                    class="default-button py-1 px-4"
                   >
                     Customize
                   </button>
@@ -219,7 +232,7 @@
               v-if="!loading"
               @click="goToCheckout"
               :disabled="cart.length === 0"
-              class="default-button lg:default-button-desktop w-full mt-4 py-2 text-2xl"
+              class="default-button w-full mt-4 py-2 text-2xl"
             >
               Proceed to Checkout
             </button>
@@ -232,9 +245,9 @@
         v-if="showCustomizationModal"
         class="fixed bg-black/50 inset-0 flex items-center justify-center z-50"
       >
-        <div class="modal w-3/4 max-w-md lg:w-full mx-auto my-auto p-6 max-h-[80vh] overflow-y-auto rounded-xl bg-white">
+        <div class="modal w-3/4 max-w-lg lg:w-full mx-auto my-auto p-6 max-h-[80vh] overflow-y-auto rounded-xl bg-primary-50 page-body">
           <!-- Title and subtitle -->
-          <h3 class="text-xl font-semibold mb-2 text-center">Customize</h3>
+          <h3 class="text-2xl font-semibold mb-2 text-center">Customize</h3>
           <p class="text-sm mb-4 text-center">
             Customize your treat with our delicious add-ons.
           </p>
@@ -245,21 +258,21 @@
               <label
                 v-for="addon in addonsOptions"
                 :key="addon.id"
-                class="flex items-center gap-2 text-base cursor-pointer select-none py-2 px-2 rounded-lg hover:bg-gray-100 transition"
+                class="flex items-center gap-2 text-lg cursor-pointer select-none py-2 px-2 rounded-lg hover:bg-primary-100 transition"
               >
                 <!-- Checkbox -->
                 <input
                   type="checkbox"
                   :value="addon.id"
                   v-model="selectedAddons"
-                  class="rounded-md h-5 w-5 border-gray-400"
+                  class="rounded-md h-5 w-5 bg-transparent border-primary-400"
                 />
 
                 <!-- Label + preço -->
                 <span class="ml-1 flex-1">
                   {{ addon.label }}
                 </span>
-                <span class="text-gray-600">
+                <span class="text-primary-400">
                   (+${{ (addon.price_cents / 100).toFixed(2) }})
                 </span>
               </label>
@@ -268,11 +281,11 @@
 
           <!-- Special Requests -->
           <div class="mt-4">
-            <label class="text-base font-semibold">Special request (optional)</label>
-            <textarea
+            <label class="text-lg">(OPTIONAL) Special request:</label>
+            <textarea 
               v-model="specialRequest"
               placeholder="e.g. extra hot, no onions, sauce on the side..."
-              class="w-full rounded-lg border p-2 text-base resize-none mt-1"
+              class="w-full rounded-lg border border-primary-400 p-2 text-base resize-none mt-1 bg-transparent"
               rows="3"
             ></textarea>
           </div>
@@ -282,13 +295,13 @@
           <div class="flex justify-end gap-3 mt-4">
             <button
               @click="closeCustomization"
-              class="px-4 py-2 cancel-button lg:cancel-button-desktop"
+              class="px-4 py-2 tooltip-button"
             >
               Cancel
             </button>
             <button
               @click="confirmCustomization"
-              class="px-4 py-2 default-button lg:default-button-desktop"
+              class="px-4 py-2 default-button"
             >
               Save
             </button>
@@ -588,6 +601,13 @@ function getToppingsForItem(item) {
   return []
 }
 
+// ================================================================
+// ADD TO CART
+// ================================================================
+function clearCart() {
+  cart.value = []
+  showToast(`Cart emptied`, "success")
+}
 
 // ================================================================
 // ADD TO CART
@@ -631,7 +651,7 @@ function addToCart(item, addons = [], request = null) {
   })
 
   // 🔥 toast de item novo
-  showToast(`✔️ ${item.name} added to cart`, "success")
+  showToast(`${item.name} added to cart`, "success")
 }
 
 
@@ -644,16 +664,16 @@ function removeFromCartByCartItem(cartItem) {
 
   if (cart.value[idx].quantity > 1) {
     cart.value[idx].quantity--
-    showToast(`➖ ${cartItem.name} quantity reduced`, "info")
+    showToast(`Removed one ${cartItem.name}`, "info")
   } else {
-    showToast(`🗑️ ${cartItem.name} removed from cart`, "error")
+    showToast(`${cartItem.name} removed`, "error")
     cart.value.splice(idx, 1)
   }
 }
 
 function addFromCartItem(cartItem) {
   cartItem.quantity++
-  showToast(`➕ Added one more ${cartItem.name}`, "info")
+  showToast(`Added one more ${cartItem.name}`, "info")
 }
 
 
@@ -719,7 +739,7 @@ function confirmCustomization() {
     selectedCartItemForCustomization.value.special_request =
       specialRequest.value || null
 
-    showToast(`✏️ ${selectedCartItemForCustomization.value.name} updated`, "info")
+    showToast(`${selectedCartItemForCustomization.value.name} updated`, "info")
   } else if (selectedItemForCustomization.value) {
     // Novo item
     addToCart(

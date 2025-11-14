@@ -16,7 +16,7 @@
         <img
           src="/images/winter-menu.png"
           alt="Winter menu banner"
-          class="w-full max-h-[480px] md:max-h-[600px] object-contain"
+          class="w-full object-contain"
         />
       </div>
     </section>

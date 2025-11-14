@@ -31,7 +31,7 @@
 				<div class="flex items-center ml-auto">
 					<a
 						href="/order"
-						class="hidden lg:inline-flex default-button-desktop text-lg px-5 py-2.5"
+						class="hidden lg:inline-flex default-button text-lg px-5 py-2.5"
 					>
 						ORDER NOW
 					</a>
@@ -40,9 +40,9 @@
 					<button
 						data-collapse-toggle="mobile-menu-2"
 						type="button"
-						class="inline-flex items-center p-2 ml-2 text-sm rounded-lg lg:hidden"
+						class="inline-flex items-center p-2 ml-2 text-sm rounded-lg text-primary-600 lg:hidden"
 					>
-						<svg class="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
+						<svg class="w-6 h-6 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
 							<path
 								fill-rule="evenodd"
 								d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4A1 1 0 013 5zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm1 4a1 1 0 000 2h12a1 1 0 100-2H4z"

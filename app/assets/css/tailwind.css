@@ -19,16 +19,11 @@
     @apply font-garamond font-semibold rounded-lg;
   }
   .default-button {
-    @apply button bg-primary-600 text-white disabled:opacity-50;
+    @apply button bg-primary-600 text-white hover:bg-primary-800 disabled:bg-primary-300 disabled:hover:bg-primary-300 transition-colors duration-200 ease-in-out;
   }
-  .default-button-desktop {
-    @apply default-button hover:bg-primary-800 transition-colors duration-200 ease-in-out;
-  }
+
   .cancel-button {
-    @apply button bg-white text-gray-500 border border-gray-400;
-  }
-  .cancel-button-desktop {
-    @apply cancel-button hover:bg-gray-100 transition-colors duration-200 ease-in-out;
+    @apply button bg-white text-gray-500 border border-gray-400 hover:bg-gray-100 transition-colors duration-200 ease-in-out;
   }
   .mobile-nav-item {
     @apply py-2 px-3 rounded-lg

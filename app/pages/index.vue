@@ -123,7 +123,7 @@
                         href="https://maps.google.com/?q=The+Crepe+Girl+Vail"
                         target="_blank"
                         rel="noopener"
-                        class="inline-flex items-center gap-2 default-button-desktop text-base px-5 py-2"
+                        class="inline-flex items-center gap-2 default-button text-base px-5 py-2"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
