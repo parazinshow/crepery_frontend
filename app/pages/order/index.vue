@@ -13,23 +13,23 @@
             v-for="section in categorizedMenu"
             :key="section.key"
             @click="scrollToSection(section.key)"
-            class="px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300 transition text-base"
+            class="tooltip-button p-2"
           >
             {{ section.title }}
           </button>
         </div>
 
         <!-- GRID PRINCIPAL: ESQUERDA MENU / DIREITA CARRINHO -->
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-12 items-start page-body">
           <!-- COLUNA ESQUERDA: MENU -->
-          <div class="lg:col-span-3 lg:px-4 lg:py-2">
+          <div class="lg:col-span-6 lg:px-4 lg:py-2">
             <!-- Estado de carregamento -->
-            <div v-if="loading" class="page-body text-center py-10">Loading menu...</div>
+            <div v-if="loading" class="text-center py-10">Loading menu...</div>
 
             <!-- MENU COM SEÇÕES FIXAS -->
             <div v-else class="space-y-8">
 
-              <!-- Cada seção -->
+              <!-- SEÇÃO -->
               <div
                 v-for="section in categorizedMenu"
                 :key="section.key"
@@ -37,34 +37,34 @@
                 class="scroll-mt-24"
               >
                 <!-- Título da seção -->
-                <h2 class="text-4xl font-bold mb-3 text-center">
+                <h2 class="text-xl font-bold mb-2 text-center">
                   {{ section.title }}
                 </h2>
 
                 <!-- MENU ITEM -->
-                <div class="divide-y">
+                <div class="divide-y divide-primary-300">
                   <div
                     v-for="item in section.items"
                     :key="item.id"
-                    class="py-4 flex items-center gap-4"
+                    class="py-2 flex items-center gap-4"
                   >
                     <img
                       :src="item.image_url || '/images/no-photo-item.png'"
-                      class="w-20 h-20 rounded-lg object-contain"
+                      class="w-20 h-20 rounded-lg object-cover"
                     />
 
-                    <div class="page-body flex-1">
-                      <h3 class="text-2xl font-bold">{{ item.name }}</h3>
-                      <p>{{ item.description }}</p>
+                    <div class="flex-1">
+                      <h3 class="text-2xl">{{ item.name }}</h3>
+                      <p class="ml-5 text-base text-primary-500">{{ item.description }}</p>
 
-                      <p v-if="item.variations?.[0]" class="font-bold mt-1">
+                      <p v-if="item.variations?.[0]" class="text-2xl mt-1">
                         ${{ (item.variations[0].price_cents / 100).toFixed(2) }}
                       </p>
                     </div>
 
                     <button
                       @click="openCustomizationForNew(item)"
-                      class="default-button h-16 w-16 lg:default-button-desktop"
+                      class="h-14 w-14 default-button lg:default-button-desktop"
                     >
                       Add
                     </button>
@@ -76,9 +76,12 @@
 
           </div>
 
+          <!-- DIVIDER -->
+          <div class="hidden lg:block col-span-1 h-full flex justify-center w-px bg-primary-300 mx-auto"></div>
+          
           <!-- DIREITA: CARRINHO -->
-          <div class="page-body lg:col-span-2 lg:px-4 lg:py-2 flex flex-col">
-            <h3 class="text-2xl font-bold mb-4 text-center">Your cart</h3>
+          <div class="lg:col-span-5 lg:px-4 lg:py-2 flex flex-col">
+            <h3 class="text-xl font-bold mb-2 text-center">Your cart</h3>
 
             <p
               v-if="!loading && cart.length === 0"
@@ -88,15 +91,15 @@
             </p>
 
             <!-- CART ITEM -->
-            <div v-else class="flex-1 space-y-3 overflow-y-auto">
+            <div v-else class="flex-1 overflow-y-auto divide-y divide-primary-300">
               <div
                 v-for="cartItem in cart"
                 :key="cartItem.lineId"
-                class="border rounded-md p-3 flex flex-col gap-2"
+                class="p-4 flex flex-col gap-1"
               >
-                <div class="flex justify-between items-start">
-                  <p class="text-xl font-semibold">{{ cartItem.name }}</p>
-                  <p class="text-xl font-semibold">
+                <div class="flex justify-between items-start text-2xl">
+                  <p>{{ cartItem.name }}</p>
+                  <p>
                     <!-- Se só tem 1 unidade, mostra o preço simples -->
                     <span v-if="cartItem.quantity === 1">
                       ${{
@@ -114,20 +117,25 @@
                 </div>
 
                 <!-- Add-on for each cart item -->
-                <div class="mx-4">
+                <div class="mx-4 text-base text-primary-500">
                   <ul
                     v-if="cartItem.addons && cartItem.addons.length"
-                    class="text-base space-y-0.5"
+                    class="ml-5"
                   >
                     <li v-for="addon in cartItem.addons" :key="addon.id">
-                      <span class="ml-4 text-lg font-semibold">
+                      <span>
                         + {{ addon.label }}
                       </span>
-                      <span class="ml-4 text-lg font-semibold">
+                      <span class="ml-5">
                         ${{ ((addon?.price_cents || 0) / 100).toFixed(2) }}
                       </span>
                     </li>
                   </ul>
+                  <!-- Special request note -->
+                  <div v-if="cartItem.special_request" class="ml-5">
+                    <span class="font-bold text-primary-600">Special Request:</span>
+                    {{ cartItem.special_request }}
+                  </div>
                 </div>
 
                 <!-- +, - AND CUSTOMIZE BUTTONS -->
@@ -135,7 +143,7 @@
                   <!-- Add button -->
                   <button
                     @click="removeFromCartByCartItem(cartItem)"
-                    class="tooltip-button p-2 lg:tooltip-button-desktop"
+                    class="tooltip-button p-2"
                     title="Remove"
                   >
                     <svg
@@ -155,12 +163,12 @@
                   </button>
 
                   <!-- Item quantity -->
-                  <span class="text-base">{{ cartItem.quantity }}</span>
+                  <span class="text-2xl">{{ cartItem.quantity }}</span>
 
                   <!-- Remove button -->
                   <button
                     @click="addFromCartItem(cartItem)"
-                    class="tooltip-button p-2 lg:tooltip-button-desktop"
+                    class="tooltip-button p-2"
                     title="Add"
                   >
                     <svg
@@ -189,23 +197,18 @@
                   </button>
                 </div>
 
-                <!-- Special request note -->
-                <div v-if="cartItem.special_request" class="font-bold text-md mt-1">
-                  <b>Special Request:</b> {{ cartItem.special_request }}
-                </div>
-
               </div>
             </div>
 
             <!-- TOTAL SUMMARY -->
-            <div v-if="!loading" class="mt-4 items-center pt-3 border-t">
+            <div v-if="!loading" class="mt-4 items-center pt-3 border-t border-primary-300 text-center">
               <!-- X itens in total -->
-              <div v-if="cart.length !== 0" class="text-center text-base">
+              <div v-if="cart.length !== 0">
                 <span>{{ cart.length }} item(s) in total</span>
               </div>
 
               <!-- Total amount -->
-              <div class="flex justify-between font-semibold text-lg">
+              <div class="flex justify-between font-semibold text-2xl">
                 <span>Total:</span>
                 <span>${{ (total / 100).toFixed(2) }}</span>
               </div>
@@ -216,9 +219,9 @@
               v-if="!loading"
               @click="goToCheckout"
               :disabled="cart.length === 0"
-              class="default-button lg:default-button-desktop w-full mt-4 py-2"
+              class="default-button lg:default-button-desktop w-full mt-4 py-2 text-2xl"
             >
-              Checkout
+              Proceed to Checkout
             </button>
           </div>
         </div>
@@ -736,12 +739,11 @@ function confirmCustomization() {
 function goToCheckout() {
   navigateTo('/order/checkout')
 }
-
 </script>
 
 
 <style>
-  body {
-    background-color: #f9fafb;
+  .tooltip-button {
+    @apply rounded-lg border border-primary-300 hover:bg-primary-300 transition text-base
   }
 </style>
