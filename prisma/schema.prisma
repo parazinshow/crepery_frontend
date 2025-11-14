@@ -13,14 +13,15 @@ model Order {
   dateKey       String   // chave diária para reset (ex: 2025-11-10)
   email         String?
   totalAmount   Int
-  tipAmount Int?    // em centavos
-  baseTotal Int?    // subtotal + tax (sem tip)
+  tipAmount     Int?    // em centavos
+  baseTotal     Int?    // subtotal + tax (sem tip)
   currency      String      @default("USD")
   squareId      String      @unique
   squareOrder   String? 
   receiptUrl    String?
   status        String      @default("PENDING")
   createdAt     DateTime    @default(now())
+  pickupTime    String?
   items         OrderItem[]
 }
 

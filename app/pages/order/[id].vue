@@ -48,7 +48,17 @@
             Status: <b>{{ displayOrder.status?.toLowerCase() }}</b>
           </p>
         </div>
-
+        <!-- Hora de retirada (se disponível) -->
+        <div class="text-center mt-2">
+          <p class="font-semibold text-gray-700">
+            🕒 Pickup Time:
+            <ClientOnly>
+              <span class="text-blue-700">
+                {{ formattedPickupTime }}
+              </span>
+            </ClientOnly>
+          </p>
+        </div>
         <!-- Itens do pedido (se houver) -->
         <div v-if="displayOrder.items && displayOrder.items.length">
           <h3 class="text-lg font-semibold border-b border-primary-300 mb-2">
@@ -148,6 +158,10 @@
 <script setup>
   import {computed} from 'vue'
   import {useRoute} from 'vue-router'
+  import {useTimeFormat} from '~/composables/useTimeFormat'
+
+  // Formatação de tempo
+  const {formatPickupTime} = useTimeFormat()
 
   /* ------------------------------------------------------------
   OBTÉM O ID DO PEDIDO PELA ROTA ATUAL
@@ -181,6 +195,9 @@
 
     // Pode vir como { success, order } (backend) ou direto (Square)
     const o = payload.order ?? payload
+
+    // HORA DE RETIRADA (se disponível)
+    const pickupTime = o.pickupTime ?? null
 
     /*  TOTAL EM CENTAVOS
      * Usa `totalAmount` (do Prisma) ou `amount_money.amount` (Square).
@@ -237,6 +254,7 @@
       dailyNumber,
       tipAmount,
       subtotalWithTax,
+      pickupTime,
     }
   })
 
@@ -273,6 +291,11 @@
     } catch {
       return String(d)
     }
+  })
+
+  // Formata a hora de retirada, se disponível
+  const formattedPickupTime = computed(() => {
+    return formatPickupTime(displayOrder.value?.pickupTime)
   })
 
   /* HELPERS --------------------------------------------------- */

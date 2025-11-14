@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     // 1️⃣ Lê o corpo da requisição enviada pelo frontend
     //    Contém sourceId (token do cartão), email e itens selecionados.
     const body = await readBody(event)
-    const { sourceId, email, items, tipAmount = 0 } = body
+    const { sourceId, email, items, tipAmount = 0, pickupTime } = body
 
     // Garante que tipAmount sempre será inteiro em centavos
     const tipCents = Math.max(0, Number(tipAmount) || 0)
@@ -44,6 +44,41 @@ export default defineEventHandler(async (event) => {
     }
 
     const { verifiedItems, verifiedTotal } = validation // verifiedTotal em centavos
+
+    // 🕒 PICKUP: calcula mínimo e slots válidos com base nos verifiedItems
+    const minPickupMinutes = await calculateMinPickupMinutes(verifiedItems)
+    const validPickupSlots = generatePickupSlots(minPickupMinutes)
+
+    // Se o front mandou um horário inválido → erro
+    // Se não mandou nada → usamos o primeiro slot disponível
+    let effectivePickupTime = pickupTime
+
+    if (!effectivePickupTime) {
+      // se nada foi enviado, usa o primeiro disponível
+      effectivePickupTime = validPickupSlots[0]
+    } else {
+      // Validação inteligente (com tolerância de 3 min)
+      const [ph, pm] = effectivePickupTime.split(':').map(Number)
+
+      const selectedTime = new Date()
+      selectedTime.setHours(ph, pm, 0, 0)
+
+      const now = new Date()
+
+      // horário mínimo real baseado no tamanho do pedido
+      const minAllowed = new Date(now.getTime() + minPickupMinutes * 60000)
+
+      // 🟦 tolerância de 3 minutos
+      const graceMs = 3 * 60 * 1000
+      const minAllowedWithGrace = new Date(minAllowed.getTime() - graceMs)
+
+      if (selectedTime < minAllowedWithGrace) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: `Invalid pickup time selected`,
+        })
+      }
+    }
 
     // ✅ Pega o valor da taxa (em % → ex: 9.4)
     // Lê o cache antes de criar o pedido
@@ -336,6 +371,7 @@ export default defineEventHandler(async (event) => {
         status: payment.status,   // normalmente "COMPLETED"
         dailyNumber: nextNumber,
         dateKey: today,
+        pickupTime: effectivePickupTime,
         items: {
           create: enrichedItems,
         },
@@ -373,7 +409,7 @@ export default defineEventHandler(async (event) => {
         to: email,
         orderId: payment.id, // ID usado no link do QR
         orderNumber: nextNumber,
-        pickupTime: '15 minutes',
+        pickupTime: effectivePickupTime,
         receiptUrl: payment.receipt_url || 'https://squareup.com/receipts',
         items: emailItems,
         taxAmount,         // 💰 tax em centavos
@@ -395,7 +431,8 @@ export default defineEventHandler(async (event) => {
       taxPercentage,
       taxAmount,
       totalWithTax,
-      tipAmount: tipCents
+      tipAmount: tipCents,
+      pickupTime: effectivePickupTime,
     }
 
   } catch (err) {

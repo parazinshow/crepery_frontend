@@ -8,10 +8,13 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useAdminAuth } from '~/composables/useAdminAuth'
 import { useOrders } from '~/composables/useOrders'
 import { useTimeAgo } from '~/composables/useTimeAgo'
+import { useTimeFormat } from '~/composables/useTimeFormat';
+
 
 // Extrai funções dos composables
 const { timeAgo } = useTimeAgo()
 const { showToast } = useToast()
+const { formatPickupTime } = useTimeFormat();
 
 // Campo do PiN de login
 const pin = ref('')
@@ -191,6 +194,10 @@ function logout() {
 
             <p class="text-gray-500 text-sm">
               Created at: {{ new Date(order.createdAt).toLocaleString() }}
+            </p>
+
+            <p class="mt-1 text-sm font-semibold">
+              Pickup at: {{ formatPickupTime(order.pickupTime) || 'ASAP' }}
             </p>
 
             <p class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded inline-block">
