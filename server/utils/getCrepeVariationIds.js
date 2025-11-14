@@ -14,13 +14,23 @@ import { readCatalogCache } from './readCatalogCache.js'
 export async function getCrepeVariationIds() {
   const cache = await readCatalogCache()
 
-  if (!cache?.categories) return []
+  const catalog = cache?.data
+  if (!catalog) {
+    console.warn("⚠️ Nenhum cache.data encontrado!")
+    return []
+  }
+
+  const categories = catalog.categories
+  if (!categories) {
+    console.warn("⚠️ Nenhum categories dentro de cache.data!")
+    return []
+  }
 
   const {
     sweetItems = [],
     savoryItems = [],
     croissants = [],
-  } = cache.categories
+  } = categories
 
   const productionItems = [
     ...sweetItems,
@@ -28,7 +38,9 @@ export async function getCrepeVariationIds() {
     ...croissants,
   ]
 
-  return productionItems
+  const variationIds = productionItems
     .map(item => item.variations?.[0]?.id)
     .filter(Boolean)
+    
+  return variationIds
 }

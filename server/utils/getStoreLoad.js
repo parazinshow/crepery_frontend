@@ -50,7 +50,7 @@ export async function getStoreLoad() {
             }
           }
         }
-      })    
+      })
 
       return res.orders || []
     } catch (err) {
