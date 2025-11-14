@@ -52,15 +52,32 @@ export default defineEventHandler(async (event) => {
     // Se o front mandou um horário inválido → erro
     // Se não mandou nada → usamos o primeiro slot disponível
     let effectivePickupTime = pickupTime
-    if (effectivePickupTime) {
-      if (!validPickupSlots.includes(effectivePickupTime)) {
+
+    if (!effectivePickupTime) {
+      // se nada foi enviado, usa o primeiro disponível
+      effectivePickupTime = validPickupSlots[0]
+    } else {
+      // Validação inteligente (com tolerância de 3 min)
+      const [ph, pm] = effectivePickupTime.split(':').map(Number)
+
+      const selectedTime = new Date()
+      selectedTime.setHours(ph, pm, 0, 0)
+
+      const now = new Date()
+
+      // horário mínimo real baseado no tamanho do pedido
+      const minAllowed = new Date(now.getTime() + minPickupMinutes * 60000)
+
+      // 🟦 tolerância de 3 minutos
+      const graceMs = 3 * 60 * 1000
+      const minAllowedWithGrace = new Date(minAllowed.getTime() - graceMs)
+
+      if (selectedTime < minAllowedWithGrace) {
         throw createError({
           statusCode: 400,
-          statusMessage: 'Invalid pickup time selected',
+          statusMessage: `Invalid pickup time selected`,
         })
       }
-    } else {
-      effectivePickupTime = validPickupSlots[0]
     }
 
     // ✅ Pega o valor da taxa (em % → ex: 9.4)
