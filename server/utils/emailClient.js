@@ -13,8 +13,6 @@ apiInstance.setApiKey(
   process.env.BREVO_API_KEY
 );
 
-console.log("🔥 BREVO KEY PREFIX:", (process.env.BREVO_API_KEY || '').slice(0, 7))
-
 // Função auxiliar para enviar de fato o e-mail usando Brevo API
 async function sendBrevoEmail({ to, subject, html, attachments = [] }) {
   const senderEmail = process.env.EMAIL_FROM || "noreply@thecrepegirl.com";

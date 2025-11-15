@@ -10,6 +10,12 @@ import prisma from './db.js'
 // 🔥 FLAG DE TESTE (vindo do Render)
 const FORCE_OPEN = process.env.STORE_FORCE_OPEN === 'true'
 
+function nowInMountainTime() {
+  return new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/Denver" })
+  );
+}
+
 /**
  * Calcula o tempo mínimo de pickup (em minutos) baseado:
  *  - quantidade total de itens do pedido (somando quantity)
@@ -21,9 +27,9 @@ const FORCE_OPEN = process.env.STORE_FORCE_OPEN === 'true'
  *  - se a soma de quantities na última 1h > 30 → mínimo 30 min
  */
 export async function calculateMinPickupMinutes(cartItems = []) {
-    if (FORCE_OPEN) {
-    // 🚀 Em modo teste sempre 5 minutos
-    return 5
+  if (FORCE_OPEN) {
+  // 🚀 Em modo teste sempre 5 minutos
+  return 5
   }
   // Total de unidades nesse pedido
   const totalQty = cartItems.reduce(
@@ -71,11 +77,11 @@ const OPEN_DAYS = [3, 4, 5, 6, 0]
  *  - horário de funcionamento (8:30 → 16:30)
  *  - dias de funcionamento (Wed–Sun)
  */
-export function generatePickupSlots(minMinutes) {
-    if (FORCE_OPEN) {
+export function generatePickupSlots (minMinutes) {
+  if (FORCE_OPEN) {
     // 🚀 Em modo teste: sempre retorna 7 slots válidos nos próximos minutos
     const slots = []
-    const now = new Date()
+    const now = nowInMountainTime()
 
     for (let i = 0; i < 7; i++) {
       const slot = new Date(now.getTime() + (minMinutes + i * 5) * 60000)
@@ -89,31 +95,32 @@ export function generatePickupSlots(minMinutes) {
 
   const slots = []
 
-  const now = new Date()
+  const now = nowInMountainTime()
 
-  // Verifica se está fechado HOJE
+  // Verifica se está fechado HOJE (em Mountain Time)
   const dow = now.getDay()
   if (!OPEN_DAYS.includes(dow)) {
     return [] // fechado hoje → nenhum horário
   }
 
   // Define horário inicial baseado no mínimo + agora
-  const start = new Date(now.getTime() + minMinutes * 60 * 1000)
+  let start = new Date(now.getTime() + minMinutes * 60 * 1000)
 
-  // Força início = no mínimo 8:30
-  const openToday = new Date()
+  // Força início = no mínimo 8:30 (sempre em Mountain Time)
+  const openToday = nowInMountainTime()
   openToday.setHours(OPEN_HOUR, OPEN_MIN, 0, 0)
 
   if (start < openToday) {
-    start.setHours(OPEN_HOUR, OPEN_MIN, 0, 0)
+    // garante que o start = exatamente 08:30, com mesma data e fuso
+    start = new Date(openToday.getTime())
   }
 
   // Define limite de fechamento: 16:30
-  const closeToday = new Date()
+  const closeToday = nowInMountainTime()
   closeToday.setHours(CLOSE_HOUR, CLOSE_MIN, 0, 0)
 
-  // Loop: gerar até 7 slots (70 minutos) mas respeitar horário de fechamento
-  for (let i = 0; i < 7; i++) {
+  // Loop: gerar até 9 slots (00 minutos) mas respeitar horário de fechamento
+  for (let i = 0; i < 9; i++) {
     const slot = new Date(start.getTime() + i * 10 * 60 * 1000)
 
     if (slot > closeToday) break // passou do horário → parar
