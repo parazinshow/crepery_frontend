@@ -8,7 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "prisma generate",
-    "start": "node .output/server/index.mjs"
+    "start": "npx prisma migrate deploy && node .output/server/index.mjs"
   },
   "dependencies": {
     "@nuxt/image": "^2.0.0",
