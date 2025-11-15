@@ -148,11 +148,14 @@
 
     // 🔹 Configuração do ambiente e chaves públicas da Square
     const config = useRuntimeConfig()
-    const isProd = process.env.NODE_ENV === 'production'
+
+    // NUNCA use process.env no frontend — sempre runtimeConfig.public
+    const isProd = config.public.SQUARE_ENV === 'production'
 
     const appId = isProd
       ? config.public.SQUARE_PRODUCTION_APP_ID
       : config.public.SQUARE_SANDBOX_APP_ID
+
     const locationId = isProd
       ? config.public.SQUARE_PRODUCTION_LOCATION_ID
       : config.public.SQUARE_SANDBOX_LOCATION_ID
