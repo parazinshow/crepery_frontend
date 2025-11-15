@@ -1,34 +1,43 @@
 import QRCode from "qrcode";
-import nodemailer from "nodemailer";
+import SibApiV3Sdk from "@sendinblue/client";
 import { formatPickupTimeServer } from "./time.js";
 
 // ========================================================
-// CONFIG SMTP BREVO
+// CONFIG BREVO (API HTTP v3)
 // ========================================================
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
-  port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
-  secure: false, // STARTTLS
-  auth: {
-    user: process.env.EMAIL_USER, // ex: 9bab83001@smtp-brevo.com
-    pass: process.env.EMAIL_PASS  // SMTP key
-  }
-});
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-// Função auxiliar para enviar de fato o e-mail
+// Usa a API KEY do Brevo (não é SMTP key)
+apiInstance.setApiKey(
+  SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY
+);
+
+console.log("🔥 BREVO KEY PREFIX:", (process.env.BREVO_API_KEY || '').slice(0, 7))
+
+// Função auxiliar para enviar de fato o e-mail usando Brevo API
 async function sendBrevoEmail({ to, subject, html, attachments = [] }) {
-  return await transporter.sendMail({
-    from: `"The Crêpe Girl" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
-    to,
+  const senderEmail = process.env.EMAIL_FROM || "noreply@thecrepegirl.com";
+
+  const payload = {
+    sender: {
+      name: "The Crêpe Girl",
+      email: senderEmail
+    },
+    to: [{ email: to }],
     subject,
-    html,
-    // se um dia você quiser mandar arquivo, usa esse formato:
-    attachments: attachments.map(a => ({
-      filename: a.filename,
-      content: a.content,
-      encoding: a.encoding || "base64"
-    }))
-  });
+    htmlContent: html,
+  };
+
+  // Se algum dia você quiser mandar anexo "de verdade"
+  if (attachments.length) {
+    payload.attachment = attachments.map(a => ({
+      name: a.filename,
+      content: a.content, // base64
+    }));
+  }
+
+  return apiInstance.sendTransacEmail(payload);
 }
 
 // ========================================================
@@ -147,7 +156,7 @@ export async function sendOrderConfirmationEmail({
       })()
     : `<p>No items found.</p>`;
 
-  // === SEU HTML FINAL, 100% IGUAL ===
+  // === HTML FINAL ===
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; color:#333;">
       <h2>🥞 The Crêpe Girl — Order Confirmation</h2>
@@ -176,7 +185,7 @@ export async function sendOrderConfirmationEmail({
     </div>
   `;
 
-  // === ENVIA VIA SMTP (BREVO) ===
+  // === ENVIA VIA BREVO API ===
   await sendBrevoEmail({
     to,
     subject: `Order #${orderNumber} Confirmation`,
