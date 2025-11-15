@@ -13,6 +13,9 @@ import prisma from '../../utils/db.js'                                 // 🧱 C
 import { validateSquareItems } from '../../utils/validateSquareItems.js' // ✅ Valida itens direto no catálogo da Square
 import { isStoreOpen } from '../../utils/isStoreOpen.js'                     // ⏰ Verifica se a loja está aberta
 
+import { calculateMinPickupMinutes, generatePickupSlots } from '../../utils/pickupTime.js'
+
+
 // Cache path para ler a tax
 import { promises as fs } from 'fs'
 import path from 'path'
@@ -22,7 +25,9 @@ export default defineEventHandler(async (event) => {
   try {
 
     //  Bloqueia pedidos fora do horário de funcionamento
-    if (!isStoreOpen()) {
+    const FORCE_OPEN = process.env.STORE_FORCE_OPEN === 'true'
+
+    if (!FORCE_OPEN && !isStoreOpen()) {
       throw createError({
         statusCode: 400,
         statusMessage: 'We are currently closed. Pickup is only available Wed–Sun, 8:30am to 4:30pm.',
@@ -55,38 +60,35 @@ export default defineEventHandler(async (event) => {
 
     const { verifiedItems, verifiedTotal } = validation // verifiedTotal em centavos
 
-    // PICKUP: calcula mínimo e slots válidos com base nos verifiedItems
     const minPickupMinutes = await calculateMinPickupMinutes(verifiedItems)
     const validPickupSlots = generatePickupSlots(minPickupMinutes)
 
-    // Se o front mandou um horário inválido → erro
-    // Se não mandou nada → usamos o primeiro slot disponível
     let effectivePickupTime = pickupTime
 
-    if (!effectivePickupTime) {
-      // se nada foi enviado, usa o primeiro disponível
+    if (FORCE_OPEN) {
+      // 🚀 Em teste sempre usa o primeiro slot
       effectivePickupTime = validPickupSlots[0]
     } else {
-      // Validação inteligente (com tolerância de 3 min)
-      const [ph, pm] = effectivePickupTime.split(':').map(Number)
+      // ---- MODO REAL ----
+      if (!effectivePickupTime) {
+        effectivePickupTime = validPickupSlots[0] || null
+      } else {
+        const [ph, pm] = effectivePickupTime.split(':').map(Number)
+        const selectedTime = new Date()
+        selectedTime.setHours(ph, pm, 0, 0)
 
-      const selectedTime = new Date()
-      selectedTime.setHours(ph, pm, 0, 0)
+        const now = new Date()
+        const minAllowed = new Date(now.getTime() + minPickupMinutes * 60000)
 
-      const now = new Date()
+        const graceMs = 3 * 60 * 1000
+        const minAllowedWithGrace = new Date(minAllowed.getTime() - graceMs)
 
-      // horário mínimo real baseado no tamanho do pedido
-      const minAllowed = new Date(now.getTime() + minPickupMinutes * 60000)
-
-      // 🟦 tolerância de 3 minutos
-      const graceMs = 3 * 60 * 1000
-      const minAllowedWithGrace = new Date(minAllowed.getTime() - graceMs)
-
-      if (selectedTime < minAllowedWithGrace) {
-        throw createError({
-          statusCode: 400,
-          statusMessage: `Invalid pickup time selected`,
-        })
+        if (selectedTime < minAllowedWithGrace) {
+          throw createError({
+            statusCode: 400,
+            statusMessage: `Invalid pickup time selected`,
+          })
+        }
       }
     }
 

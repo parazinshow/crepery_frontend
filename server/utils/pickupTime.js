@@ -7,6 +7,9 @@
 
 import prisma from './db.js'
 
+// 🔥 FLAG DE TESTE (vindo do Render)
+const FORCE_OPEN = process.env.STORE_FORCE_OPEN === 'true'
+
 /**
  * Calcula o tempo mínimo de pickup (em minutos) baseado:
  *  - quantidade total de itens do pedido (somando quantity)
@@ -18,6 +21,10 @@ import prisma from './db.js'
  *  - se a soma de quantities na última 1h > 30 → mínimo 30 min
  */
 export async function calculateMinPickupMinutes(cartItems = []) {
+    if (FORCE_OPEN) {
+    // 🚀 Em modo teste sempre 5 minutos
+    return 5
+  }
   // Total de unidades nesse pedido
   const totalQty = cartItems.reduce(
     (sum, i) => sum + (Number(i.quantity) || 0),
@@ -65,6 +72,21 @@ const OPEN_DAYS = [3, 4, 5, 6, 0]
  *  - dias de funcionamento (Wed–Sun)
  */
 export function generatePickupSlots(minMinutes) {
+    if (FORCE_OPEN) {
+    // 🚀 Em modo teste: sempre retorna 7 slots válidos nos próximos minutos
+    const slots = []
+    const now = new Date()
+
+    for (let i = 0; i < 7; i++) {
+      const slot = new Date(now.getTime() + (minMinutes + i * 5) * 60000)
+      const hh = slot.getHours().toString().padStart(2, '0')
+      const mm = slot.getMinutes().toString().padStart(2, '0')
+      slots.push(`${hh}:${mm}`)
+    }
+
+    return slots
+  }
+
   const slots = []
 
   const now = new Date()
