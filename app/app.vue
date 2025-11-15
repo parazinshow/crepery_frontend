@@ -22,7 +22,11 @@ Aqui indicamos que TODAS as páginas devem usar o layout padrão.
   useHead({
     script: [
       {
-        src: 'https://web.squarecdn.com/v1/square.js',
+        src: "https://pay.google.com/gp/p/js/pay.js",
+        async: true,
+      },
+      {
+        src: "https://web.squarecdn.com/v1/square.js",
         defer: true,
       },
     ],
