@@ -179,12 +179,26 @@
         appleAvailable.value = false
       }
 
-      // Testa disponibilidade do Google Pay
+      // ========================================================
+      // GOOGLE PAY – PAYMENT REQUEST + CHECK IF SUPPORTED
+      // ========================================================
       try {
-        googlePay = await payments.googlePay()
-        googleAvailable.value = await googlePay.canMakePayment()
-      } catch {
-        googleAvailable.value = false
+        const paymentRequest = payments.paymentRequest({
+          countryCode: "US",
+          currencyCode: "USD",
+          total: {
+            amount: (totalWithTax.value / 100).toFixed(2),
+            label: "The Crêpe Girl Order",
+          }
+        });
+
+        googlePay = await payments.googlePay(paymentRequest);
+
+        // novo método da API (o correto)
+        googleAvailable.value = await googlePay.isSupported();
+      } catch (err) {
+        console.error("Google Pay failed:", err);
+        googleAvailable.value = false;
       }
 
       // Se nenhum wallet estiver disponível, cria formulário de cartão
