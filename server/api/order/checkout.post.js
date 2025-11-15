@@ -441,21 +441,27 @@ export default defineEventHandler(async (event) => {
         }
       })
 
+      try {
+        // 🔹 Envia o e-mail com valores 100 % consistentes
+        await sendOrderConfirmationEmail({
+          to: email,
+          orderId: payment.id, // ID usado no link do QR
+          orderNumber: nextNumber,
+          pickupTime: effectivePickupTime,
+          receiptUrl: payment.receipt_url || 'https://squareup.com/receipts',
+          items: emailItems,
+          taxAmount,         // 💰 tax em centavos
+          taxPercentage,     // ex: 9.4
+          subtotal: subtotalWithAddons, // em centavos
+          tipAmount: tipCents,
+          total: totalWithTax, // em centavos
+        })
 
-      // 🔹 Envia o e-mail com valores 100 % consistentes
-      await sendOrderConfirmationEmail({
-        to: email,
-        orderId: payment.id, // ID usado no link do QR
-        orderNumber: nextNumber,
-        pickupTime: effectivePickupTime,
-        receiptUrl: payment.receipt_url || 'https://squareup.com/receipts',
-        items: emailItems,
-        taxAmount,         // 💰 tax em centavos
-        taxPercentage,     // ex: 9.4
-        subtotal: subtotalWithAddons, // em centavos
-        tipAmount: tipCents,
-        total: totalWithTax, // em centavos
-      })
+      } catch (err) {
+        console.error("❌ Erro ao enviar email:", err)
+        // NÃO jogar erro — pagamento já foi feito
+      }
+
     }
 
     // 9️⃣ Retorna resposta final para o frontend
