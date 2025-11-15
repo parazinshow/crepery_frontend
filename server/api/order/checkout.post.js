@@ -246,50 +246,56 @@ export default defineEventHandler(async (event) => {
       idempotency_key: crypto.randomUUID(),
     }
 
-    const orderRes = await $fetch(`${baseUrl}/v2/orders`, {
-      method: 'POST',
-      headers: {
-        'Square-Version': SQUARE_VERSION,
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(orderPayload),
-    })
-
-    const orderId = orderRes?.order?.id
-    if (!orderId) {
-      return { success: false, message: 'Falha ao criar pedido na Square.' }
-    }
-
-    // 6️⃣ Cria o pagamento real associado ao pedido criado
-    //    O valor vem do cálculo validado direto na Square (verifiedTotal + addons)
-    const orderTotal = orderRes?.order?.total_money?.amount
-
-    const paymentRes = await $fetch(`${baseUrl}/v2/payments`, {
-      method: 'POST',
-      headers: {
-        'Square-Version': SQUARE_VERSION,
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        source_id: sourceId,
-        idempotency_key: crypto.randomUUID(),
-
-        // 💵 Valor final (subtotal + tax + tip)
-        amount_money: {
-          amount: orderTotal, // ❗ NÃO incluir tip aqui — Square recusa se somar
-          currency: 'USD',
+    try {
+      const orderRes = await $fetch(`${baseUrl}/v2/orders`, {
+        method: 'POST',
+        headers: {
+          'Square-Version': SQUARE_VERSION,
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        // 💰 Tip separado para a Square (opcional mas recomendado)
-        tip_money: tipCents > 0 ? {
-          amount: tipCents,
-          currency: 'USD'
-        } : undefined,
-        order_id: orderId,        // 🔗 vincula o pagamento ao pedido
-        location_id: LOCATION_ID, // localização usada na transação
-      }),
-    })
+        body: JSON.stringify(orderPayload),
+      })
+  
+      const orderId = orderRes?.order?.id
+      if (!orderId) {
+        return { success: false, message: 'Falha ao criar pedido na Square.' }
+      }
+  
+      // 6️⃣ Cria o pagamento real associado ao pedido criado
+      //    O valor vem do cálculo validado direto na Square (verifiedTotal + addons)
+      const orderTotal = orderRes?.order?.total_money?.amount
+  
+      const paymentRes = await $fetch(`${baseUrl}/v2/payments`, {
+        method: 'POST',
+        headers: {
+          'Square-Version': SQUARE_VERSION,
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          source_id: sourceId,
+          idempotency_key: crypto.randomUUID(),
+  
+          // 💵 Valor final (subtotal + tax + tip)
+          amount_money: {
+            amount: orderTotal, // ❗ NÃO incluir tip aqui — Square recusa se somar
+            currency: 'USD',
+          },
+          // 💰 Tip separado para a Square (opcional mas recomendado)
+          tip_money: tipCents > 0 ? {
+            amount: tipCents,
+            currency: 'USD'
+          } : undefined,
+          order_id: orderId,        // 🔗 vincula o pagamento ao pedido
+          location_id: LOCATION_ID, // localização usada na transação
+        }),
+      })
+      
+    } catch (err) {
+      console.error("🔥 Square Payment Error >>>", JSON.stringify(err?.data || err, null, 2))
+      throw err
+    }
 
     const payment = paymentRes?.payment
     // Se o pagamento falhou ou foi negado
