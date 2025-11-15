@@ -246,7 +246,7 @@ export default defineEventHandler(async (event) => {
               pickup_at: toPickupISO(effectivePickupTime),
               note: `Pickup order from website – scheduled for ${effectivePickupTime}`,
               recipient: {
-              display_name: email?.split("@")[0] || "Online Order",
+              display_name: email ? email.split("@")[0] : "Online Order",
               email_address: email || undefined
             }
             },
