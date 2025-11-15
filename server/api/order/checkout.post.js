@@ -22,6 +22,12 @@ import { promises as fs } from 'fs'
 import path from 'path'
 const CACHE_PATH = path.resolve('./server/cache/catalog.json')
 
+function nowInMountainTime() {
+  return new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })
+  )
+}
+
 export default defineEventHandler(async (event) => {
   try {
 
@@ -64,7 +70,7 @@ export default defineEventHandler(async (event) => {
     const minPickupMinutes = await calculateMinPickupMinutes(verifiedItems)
     const validPickupSlots = generatePickupSlots(minPickupMinutes)
 
-    let effectivePickupTime = pickupTime
+    let effectivePickupTime = pickupTime 
 
     if (FORCE_OPEN) {
       // 🚀 Em teste sempre usa o primeiro slot
@@ -75,14 +81,15 @@ export default defineEventHandler(async (event) => {
         effectivePickupTime = validPickupSlots[0] || null
       } else {
         const [ph, pm] = effectivePickupTime.split(':').map(Number)
-        const selectedTime = new Date()
+
+        const selectedTime = nowInMountainTime()
         selectedTime.setHours(ph, pm, 0, 0)
 
-        const now = new Date()
+        const now = nowInMountainTime()
         const minAllowed = new Date(now.getTime() + minPickupMinutes * 60000)
 
         const graceMs = 3 * 60 * 1000
-        const minAllowedWithGrace = new Date(minAllowed.getTime() - graceMs)
+        const minAllowedWithGrace = new Date(minAllowed.getTime() - graceMs)      
 
         if (selectedTime < minAllowedWithGrace) {
           throw createError({
@@ -522,11 +529,12 @@ export default defineEventHandler(async (event) => {
 function toPickupISO(timeHHMM) {
   if (!timeHHMM?.includes(':')) return null
   
-  const [h, m] = timeHHMM.split(':')
-  
-  const date = new Date()
-  date.setHours(Number(h), Number(m), 0, 0)
+  const [h, m] = timeHHMM.split(':').map(Number)
 
-  // força para America/Denver
-  return date.toISOString()
+  // Baseado *sempre* em Mountain Time
+  const dateMT = nowInMountainTime()
+  dateMT.setHours(h, m, 0, 0)
+
+  // E só então converte para ISO
+  return dateMT.toISOString()
 }
