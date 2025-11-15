@@ -21,7 +21,7 @@ Aqui indicamos que TODAS as páginas devem usar o layout padrão.
   useHead({
     script: [
       {
-        src: 'https://sandbox.web.squarecdn.com/v1/square.js',
+        src: 'https://web.squarecdn.com/v1/square.js',
         defer: true,
       },
     ],

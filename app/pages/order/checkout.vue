@@ -125,7 +125,6 @@
     onMounted — Inicializa carrinho e Square Payments
   ----------------------------------------------------------- */
   onMounted(async () => {
-    console.log("===== PUBLIC CONFIG =====", useRuntimeConfig().public)
     // Recupera carrinho salvo no navegador
     const savedCart = localStorage.getItem('crepegirl_cart')
     let loaded = savedCart ? JSON.parse(savedCart) : []
