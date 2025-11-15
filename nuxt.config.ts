@@ -27,4 +27,8 @@ export default defineNuxtConfig({
       SQUARE_PRODUCTION_LOCATION_ID: process.env.NUXT_PUBLIC_SQUARE_PRODUCTION_LOCATION_ID,
     },
   },
+  ssr: true,
+  nitro: {
+    preset: 'node-server'
+  }
 })
