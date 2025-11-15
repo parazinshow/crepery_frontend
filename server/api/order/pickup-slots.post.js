@@ -15,8 +15,10 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const { items } = body || {}
   
-  // Verifica se restaurante está aberto AGORA
-  if (!isStoreOpen()) {
+  const FORCE_OPEN = process.env.STORE_FORCE_OPEN === 'true'
+
+  // Se não estiver forçando aberto e a loja estiver fechada → retorna closed
+  if (!FORCE_OPEN && !isStoreOpen()) {
     return {
       closed: true,
       message: "We are currently closed.",
@@ -24,6 +26,7 @@ export default defineEventHandler(async (event) => {
       minPickupMinutes: null,
     }
   }
+
 
   if (!items || !Array.isArray(items) || !items.length) {
     throw createError({
