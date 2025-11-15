@@ -12,8 +12,9 @@ import { sendOrderConfirmationEmail } from '../../utils/emailClient.js' // ✉�
 import prisma from '../../utils/db.js'                                 // 🧱 Cliente Prisma (SQLite)
 import { validateSquareItems } from '../../utils/validateSquareItems.js' // ✅ Valida itens direto no catálogo da Square
 import { isStoreOpen } from '../../utils/isStoreOpen.js'                     // ⏰ Verifica se a loja está aberta
-
 import { calculateMinPickupMinutes, generatePickupSlots } from '../../utils/pickupTime.js'
+
+import crypto from 'node:crypto'
 
 
 // Cache path para ler a tax
@@ -38,6 +39,7 @@ export default defineEventHandler(async (event) => {
     //    Contém sourceId (token do cartão), email e itens selecionados.
     const body = await readBody(event)
     const { sourceId, email, items, tipAmount = 0, pickupTime } = body
+    console.log("🟦 BODY RECEBIDO:", body)
 
     // Garante que tipAmount sempre será inteiro em centavos
     const tipCents = Math.max(0, Number(tipAmount) || 0)
@@ -234,6 +236,22 @@ export default defineEventHandler(async (event) => {
     const orderPayload = {
       order: {
         location_id: LOCATION_ID,
+        fulfillments: [
+          {
+            uid: crypto.randomUUID(),
+            type: "PICKUP",
+            state: "PROPOSED",
+            // detalhe do pickup — Square recomenda usar isso
+            pickup_details: {
+              pickup_at: toPickupISO(effectivePickupTime),
+              note: `Pickup order from website – scheduled for ${effectivePickupTime}`,
+              recipient: {
+              display_name: email?.split("@")[0] || "Online Order",
+              email_address: email || undefined
+            }
+            },
+          }
+        ],
         line_items: [...baseLineItems, ...addonLineItems],
         taxes: [
           {
@@ -250,6 +268,8 @@ export default defineEventHandler(async (event) => {
     let orderId
     let paymentRes
 
+    console.log("🟧 ORDER PAYLOAD ->", JSON.stringify(orderPayload, null, 2))
+
     try {
       // 6.1) Cria o pedido na Square
       const orderRes = await $fetch(`${baseUrl}/v2/orders`, {
@@ -261,6 +281,8 @@ export default defineEventHandler(async (event) => {
         },
         body: JSON.stringify(orderPayload),
       })
+
+      console.log("🟩 ORDER RESPONSE:", JSON.stringify(orderRes, null, 2))
 
       orderId = orderRes?.order?.id
       if (!orderId) {
@@ -277,6 +299,11 @@ export default defineEventHandler(async (event) => {
       if (!orderTotal || orderTotal <= 0) {
         orderTotal = baseTotal // subtotalWithAddons + taxAmount
       }
+
+      console.log("🟨 PAYMENT REQUEST:", {
+        orderId,
+        orderTotal
+      })
 
       // 6.2) Cria o pagamento real
       paymentRes = await $fetch(`${baseUrl}/v2/payments`, {
@@ -309,6 +336,9 @@ export default defineEventHandler(async (event) => {
           location_id: LOCATION_ID,
         }),
       })
+
+      console.log("🟪 PAYMENT RESPONSE:", JSON.stringify(paymentRes, null, 2))
+
     } catch (err) {
       console.error(
         '🔥 Square Payment Error >>>',
@@ -500,3 +530,15 @@ export default defineEventHandler(async (event) => {
     }
   }
 })
+
+function toPickupISO(timeHHMM) {
+  if (!timeHHMM?.includes(':')) return null
+  
+  const [h, m] = timeHHMM.split(':')
+  
+  const date = new Date()
+  date.setHours(Number(h), Number(m), 0, 0)
+
+  // força para America/Denver
+  return date.toISOString()
+}

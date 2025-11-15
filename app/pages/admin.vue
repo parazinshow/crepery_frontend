@@ -161,7 +161,7 @@
       <!--       PAINEL ADMIN REAL         -->
       <!-- =============================== -->
 
-      <div v-else>
+      <div v-else class="max-w-6xl">
         <!-- Top Bar -->
         <div class="flex justify-between items-center mb-8">
           <h2 class="text-2xl font-bold">Pending Orders</h2>

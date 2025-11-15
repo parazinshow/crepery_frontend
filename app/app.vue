@@ -18,6 +18,7 @@ Aqui indicamos que TODAS as páginas devem usar o layout padrão.
 <script setup>
   // Adiciona o script do Square para pagamentos
   // producion: https://web.squarecdn.com/v1/square.js
+  // sandbox: https://sandbox.web.squarecdn.com/v1/square.js
   useHead({
     script: [
       {
